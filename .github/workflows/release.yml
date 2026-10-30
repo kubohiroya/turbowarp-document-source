@@ -1,7 +1,13 @@
 name: Release
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v<package.version> tag to recover from main
+        required: true
+        type: string
 permissions:
   contents: write
   id-token: write
@@ -11,47 +17,67 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Verify the version and main commit
+      - name: Verify the version, tag source and main commit
         run: |
           set -euo pipefail
-          test "${GITHUB_REF_NAME#v}" = "$(node -p 'require("./package.json").version')"
-          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
-      - name: Pack
+          main="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"
+          test "$main" = "$(git rev-parse HEAD)"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            node scripts/release-canonical-archive.mjs verify-source --tag "$RELEASE_TAG" --dispatch
+          else
+            test "$main" = "$GITHUB_SHA"
+            node scripts/release-canonical-archive.mjs verify-source --tag "$RELEASE_TAG"
+          fi
+      - name: Pack and select the canonical npm archive
         run: |
-          mkdir -p "$RUNNER_TEMP/npm"
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/npm" "$RUNNER_TEMP/canonical"
           npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/npm" > "$RUNNER_TEMP/pack.json"
-          echo "NPM_ARCHIVE=$RUNNER_TEMP/npm/$(node -p 'require(process.env.RUNNER_TEMP + "/pack.json")[0].filename')" >> "$GITHUB_ENV"
-      - name: Create Release and attach package
+          filename="$(node -p 'require(process.env.RUNNER_TEMP + "/pack.json")[0].filename')"
+          node scripts/release-canonical-archive.mjs canonical \
+            --name "$(node -p 'require("./package.json").name')" \
+            --version "$(node -p 'require("./package.json").version')" \
+            --candidate "$RUNNER_TEMP/npm/$filename" \
+            --output "$RUNNER_TEMP/canonical/$filename" \
+            --report "$RUNNER_TEMP/canonical-report.json"
+          echo "NPM_ARCHIVE=$RUNNER_TEMP/canonical/$filename" >> "$GITHUB_ENV"
+      - name: Create Release and attach the canonical package
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --verify-tag --prerelease --title "$GITHUB_REF_NAME" --generate-notes
-          want="sha256:$(sha256sum "$NPM_ARCHIVE" | cut -f1 -d' ')"
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --verify-tag --prerelease --title "$RELEASE_TAG" --generate-notes
           filename="$(basename "$NPM_ARCHIVE")"
-          have="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" --jq ".assets[] | select(.name == \"$filename\") | .digest")"
+          have="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq ".assets[] | select(.name == \"$filename\") | .id")"
           if [ -n "$have" ]; then
-            test "$have" = "$want"
+            mkdir -p "$RUNNER_TEMP/existing-release"
+            gh release download "$RELEASE_TAG" --pattern "$filename" --dir "$RUNNER_TEMP/existing-release"
+            if ! cmp -s "$RUNNER_TEMP/existing-release/$filename" "$NPM_ARCHIVE"; then
+              node scripts/release-canonical-archive.mjs compare --candidate "$NPM_ARCHIVE" --other "$RUNNER_TEMP/existing-release/$filename"
+              gh release upload "$RELEASE_TAG" "$NPM_ARCHIVE" --clobber
+            fi
           else
-            gh release upload "$GITHUB_REF_NAME" "$NPM_ARCHIVE"
+            gh release upload "$RELEASE_TAG" "$NPM_ARCHIVE"
           fi
-      - name: Publish the verified archive
+      - name: Publish only an unpublished version
         run: |
           set -euo pipefail
-          name="$(node -p 'require("./package.json").name')"
-          version="$(node -p 'require("./package.json").version')"
-          have="$(npm view "$name@$version" dist.shasum --prefer-online 2>/dev/null || true)"
-          want="$(sha1sum "$NPM_ARCHIVE" | cut -f1 -d' ')"
-          if [ -n "$have" ]; then
-            test "$have" = "$want"
+          if node -e 'const r=require(process.env.RUNNER_TEMP + "/canonical-report.json");process.exit(r.published ? 0 : 1)'; then
+            echo 'The exact canonical archive is already published; npm publish is unnecessary.'
           else
             npm publish "$NPM_ARCHIVE" --access public --provenance --tag next
           fi
