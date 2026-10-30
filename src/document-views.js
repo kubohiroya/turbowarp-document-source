@@ -74,7 +74,7 @@ export function createEmbeddedDocumentProvider(vm, {enabled = globalThis.TW_EMBE
     const requireSource = ref => { store.read(ref.documentId); if (activeKind(liveOwner(), ref) !== 'source') fail('DOCUMENT_VIEW_ACTIVE','Reflect the active block representation into source before editing the raw document or creating another view.'); };
     return Object.freeze({
         id: base.id, hatOpcodes: base.hatOpcodes,
-        list: () => base.list().map(item => ({...item, activeRepresentation: activeKind(liveOwner(), referenceFor(item.documentId)), representations: [{kind:'yaml-blocks',label:'YAML blocks',fromSource:true,toSource:true,available:canPatchProject(vm),...(!canPatchProject(vm)?{reason:'The VM cannot apply a local document block patch.'}:{})}]})),
+        list: () => base.list().map(item => ({...item, activeRepresentation: activeKind(liveOwner(), referenceFor(item.documentId)), representations: [{kind:'yaml-blocks',label:'YAML blocks',fromSource:true,toSource:true,fromRepresentations:['yaml-blocks'],available:canPatchProject(vm),...(!canPatchProject(vm)?{reason:'The VM cannot apply a local document block patch.'}:{})}]})),
         subscribe: listener => base.subscribe(listener),
         open(documentId) {
             if (disposed) fail('DOCUMENT_CLOSED','The document provider is closed.');
@@ -85,6 +85,19 @@ export function createEmbeddedDocumentProvider(vm, {enabled = globalThis.TW_EMBE
                     if (!record || record.id !== documentId || record.source !== source) fail('PROJECT_CONFLICT','The source document changed.');
                     const state = readDocumentViewMetadata(owner, reference), active = state?.activeKind || 'source';
                     let root = locate(project, reference);
+                    if (request.direction === 'from-source' && active === 'yaml-blocks') {
+                        if (!root) fail('DOCUMENT_VIEW_ROOT_INVALID','The active source reference hat is missing.');
+                        const descriptor = state.descriptors['yaml-blocks'];
+                        if (!descriptor || descriptor.rootOpcode !== rootOpcode || encodeReference(descriptor.reference) !== encodeReference(reference) || !descriptor.opcodes || Object.keys(descriptor.opcodes).length !== Object.keys(opcodes).length || Object.entries(opcodes).some(([name, opcode]) => descriptor.opcodes[name] !== opcode)) fail('DOCUMENT_VIEW_METADATA_INVALID','The active block representation does not match this document.');
+                        const syntax = parseSourceSyntax(source,{format:record.format});
+                        const result = readYamlSourceBlockView({baseline:syntax.baseline,blocks:root.target.blocks,descriptor,sourceRevision:record.revision});
+                        const owned = subtree(root.target,root,descriptor.opcodes);
+                        if (result.source === source) return {project,source,summary:`Save YAML blocks in ${record.filename}`};
+                        if ([...owned].some(id=>root.target.blocks[id].comment) || Object.values(root.target.comments || {}).some(comment=>owned.has(comment.blockId))) fail('DOCUMENT_VIEW_COMMENT_UNSUPPORTED','Keep standard comments before regenerating an edited YAML block view.');
+                        const reflected = buildCandidate({project,source,request:{kind:'yaml-blocks',direction:'to-source'}});
+                        const rebuilt = buildCandidate({project:reflected.project,source:reflected.source,request:{kind:'yaml-blocks',direction:'from-source'}});
+                        return {...rebuilt,summary:`Save YAML blocks in ${record.filename}`};
+                    }
                     if (request.direction === 'from-source') {
                         if (active !== 'source') fail('DOCUMENT_VIEW_ACTIVE','Reflect the active block representation into source first.');
                         if (root?.block.next) fail('DOCUMENT_VIEW_OCCUPIED','The source hat already owns a body; it will not be replaced.');
@@ -131,22 +144,28 @@ export function createEmbeddedDocumentProvider(vm, {enabled = globalThis.TW_EMBE
                 blocks[root.id].x=24;blocks[root.id].y=24;
                 return {blocks,rootIds:[root.id]};
             };
-            const buildPreview = ({project,source,kind}) => {
+            const previewProject = project => ({
+                ...project,
+                targets:project.targets.map(target=>({...target,blocks:Object.fromEntries(Object.entries(target.blocks || {}).map(([id,block])=>[id,{...block}]))})),
+                extensionStorage:{...project.extensionStorage,[sourceDocumentStorageId]:{...ownerOf(project),documents:{...ownerOf(project).documents},...(ownerOf(project).editorViews?{editorViews:clone(ownerOf(project).editorViews)}:{})}},
+                extensions:[...(project.extensions || [])],extensionURLs:{...(project.extensionURLs || {})}
+            });
+            const buildPreviewArtifact = ({project,source,kind}) => {
                 if(!['source','yaml-blocks'].includes(kind))fail('REPRESENTATION_UNSUPPORTED','This owner does not provide a schema-specific block preview.');
+                project=previewProject(project);
                 const active=activeKind(ownerOf(project),reference);
-                let graph=kind==='yaml-blocks'&&active==='yaml-blocks'?previewGraph(project):null;
-                if(active!=='source'){
-                    const reflected=buildCandidate({project,source,request:{kind:active,direction:'to-source'}});
-                    project=reflected.project;source=reflected.source;
-                }
-                if(kind==='source')return {kind,source};
-                if(!graph){const built=buildCandidate({project,source,request:{kind:'yaml-blocks',direction:'from-source'}});graph=previewGraph(built.project);}
+                const request=kind==='yaml-blocks'?{kind:'yaml-blocks',direction:'from-source'}:active==='source'?null:{kind:active,direction:'to-source'};
+                const candidate=request?buildCandidate({project,source,request}):null;
+                if(candidate){project=candidate.project;source=candidate.source;}
+                if(kind==='source')return {preview:{kind,source},...(candidate?{candidate:{...candidate,request}}:{})};
+                const graph=previewGraph(project);
                 const filename=ownerOf(project).documents[documentId].filename;
                 const rootDefinition=createEmbeddedYamlHatDefinition({BlockType:{HAT:'hat'},operation:'sourceDocument',menuName:'sourceDocuments',defaultReference:reference});
                 const blockDefinitions=[{...rootDefinition,opcode:rootOpcode,text:'embedded document [DOCUMENT]',colour:'#9a7037'},...createYamlBlockDefinitions().map(definition=>({...definition,opcode:opcodes[Object.keys(yamlBlockOperations).find(key=>yamlBlockOperations[key]===definition.opcode)],colour:'#9a7037'}))];
-                return {kind,source,...graph,blockDefinitions,menus:{...createYamlBlockMenus(),sourceDocuments:{acceptReporters:false,items:[{text:filename,value:encodeReference(reference)}]}}};
+                const preview = {kind,source,...graph,blockDefinitions,menus:{...createYamlBlockMenus(),sourceDocuments:{acceptReporters:false,items:[{text:filename,value:encodeReference(reference)}]}}};
+                return {preview,...(candidate?{candidate:{...candidate,request}}:{})};
             };
-            const wrapped = createProjectRepresentationAdapter({vm, adapter, reference,buildCandidate,buildPreview});
+            const wrapped = createProjectRepresentationAdapter({vm, adapter, reference,buildCandidate,buildPreviewArtifact});
             const guarded = Object.freeze({...wrapped,
                 prepare(snapshot,source) {requireSource(reference);return wrapped.prepare(snapshot,source);},
                 commit(snapshot,candidate) {requireSource(reference);return wrapped.commit(snapshot,candidate);},

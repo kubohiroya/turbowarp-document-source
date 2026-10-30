@@ -129,7 +129,9 @@ GUIホストは `installProjectPatchWorkspaceAdapter(vm,{prepare({targetChanges}
 ## 試験公開版の利用
 
 ```sh
-npm install --save-exact @kubohiroya/turbowarp-embedded-yaml@0.1.0-rc.0
+npm install --save-exact @kubohiroya/turbowarp-embedded-yaml@0.1.0-rc.1
 ```
 
 文書操作はホスト側の起動時フラグで明示的に有効化します。既存作品・原文は保持し、切戻し時はフラグを外して直前の検証済み版へ戻します。
+
+同じ共通YAMLブロック形式での保存も、表示時に検証した候補を明示commitし、原文・revisionを更新しながらactive kindを保持します。自己kindの`fromRepresentations`宣言は対応するDocData 0.5.0-rc.1以降で検査します。原文が同じならブロックとrevisionを変更しません。更新後の再生成で標準付箋の対応を保証できない本文は、黙って失わず保存を拒否します。
