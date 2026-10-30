@@ -124,12 +124,14 @@ view descriptor v2にはdocument reference、known root opcode、syntaxの構造
 
 GUIホストは `installProjectPatchWorkspaceAdapter(vm,{prepare({targetChanges}) { return {apply(){...},rollback(){...}}; }})` を登録します。`targetChanges` はtarget IDと変更対象root／block／comment IDだけを渡します。prepare・apply・rollbackは同期です。ホストは該当rootの表示だけを更新し、スクロールや無関係なブロックの表示を保ってください。ヘッドレスVMでは登録不要です。登録解除関数をdispose時に呼びます。
 
+VMの通常ブロック一覧に含まれないメニュー用shadowは、GUIホストが任意の同期 `hasBlockDefinition(type): boolean` を提供して登録済み定義を証明できます。正式に取得したBlocklyの `Blocks` にその型の独自プロパティがあり、定義の `init` が関数の場合だけ `true` を返してください。この補完はshadowに限定し、prepare時と適用直前に再確認します。未提供・未登録・例外・非boolean・非同期の返値は許可として扱いません。通常のVM定義確認と拡張のセキュリティ承認は維持します。
+
 途中のブロック変更通知を抑え、VM差分とGUI差分の適用後に変更通知を1回送ります。適用に失敗した場合は元のブロック・コメント・metadataとGUIを同期復元し、復元が完了したかをエラーに明示します。復元後に削除済みblockの辞書挿入順だけが変わる可能性があるため、再試行には新しいsnapshotを取得します。正常適用後の外部observer例外は、確定済みの変更を失敗扱いにしません。
 
 ## 試験公開版の利用
 
 ```sh
-npm install --save-exact @kubohiroya/turbowarp-embedded-yaml@0.1.0-rc.1
+npm install --save-exact @kubohiroya/turbowarp-embedded-yaml@0.1.0-rc.2
 ```
 
 文書操作はホスト側の起動時フラグで明示的に有効化します。既存作品・原文は保持し、切戻し時はフラグを外して直前の検証済み版へ戻します。

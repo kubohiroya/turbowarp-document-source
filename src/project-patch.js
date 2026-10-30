@@ -47,7 +47,12 @@ const clone = (value) => {
     return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, clone(item)]));
 };
 export function installProjectPatchWorkspaceAdapter(vm, adapter) {
-    if (!vm || typeof adapter?.prepare !== 'function')
+    if (
+        !vm ||
+        typeof adapter?.prepare !== 'function' ||
+        (adapter.hasBlockDefinition !== undefined &&
+            typeof adapter.hasBlockDefinition !== 'function')
+    )
         throw new TypeError('A VM and synchronous workspace adapter are required.');
     if (
         vm[projectPatchWorkspaceAdapterSymbol] &&
@@ -216,7 +221,7 @@ function extensionId(opcode) {
     const prefix = split < 0 ? opcode : opcode.slice(0, split);
     return core.has(prefix) ? null : split < 0 ? null : prefix;
 }
-async function ensureExtensions(vm, base, candidate, opcodes, assertCurrent) {
+async function ensureExtensions(vm, base, candidate, blocks, assertCurrent) {
     const before = base.extensions ?? [],
         after = candidate.extensions ?? [];
     if (
@@ -251,7 +256,7 @@ async function ensureExtensions(vm, base, candidate, opcodes, assertCurrent) {
             invalid('Added extension URLs must use an extension script URL.');
     }
     // Metadata may mention compatibility runtimes: load only extensions used by actual block changes.
-    const ids = new Set(opcodes.map(extensionId).filter(Boolean));
+    const ids = new Set(blocks.map((block) => extensionId(block.opcode)).filter(Boolean));
     const manager = vm.extensionManager;
     for (const id of ids) {
         if (manager?.isExtensionLoaded?.(id)) continue;
@@ -284,6 +289,9 @@ async function ensureExtensions(vm, base, candidate, opcodes, assertCurrent) {
                 `The extension did not register its expected ID: ${id}`,
             );
     }
+    assertBlockDefinitions(vm, blocks);
+}
+function assertBlockDefinitions(vm, blocks) {
     const definitions =
         typeof vm.runtime.getBlocksJSON === 'function'
             ? new Set(
@@ -293,18 +301,40 @@ async function ensureExtensions(vm, base, candidate, opcodes, assertCurrent) {
                       .map((info) => info.type),
               )
             : null;
-    for (const opcode of opcodes)
+    for (const block of blocks) {
+        const opcode = block.opcode;
+        let registeredShadow = false;
+        // VM block JSON omits menu shadows; only the host can attest its registered GUI definitions.
+        if (
+            block.shadow === true &&
+            extensionId(opcode) &&
+            !definitions?.has(opcode) &&
+            typeof vm.runtime.getOpcodeFunction?.(opcode) !== 'function'
+        ) {
+            const workspace = vm[projectPatchWorkspaceAdapterSymbol];
+            try {
+                const proof = workspace?.hasBlockDefinition?.(opcode);
+                // Never accept asynchronous proof; consume a rejection without letting it escape.
+                if (proof !== null && ['object', 'function'].includes(typeof proof))
+                    Promise.resolve(proof).catch(() => {});
+                registeredShadow = proof === true;
+            } catch {
+                // A failed or asynchronous capability is not proof that the definition exists.
+            }
+        }
         if (
             extensionId(opcode) &&
             !(
                 definitions?.has(opcode) ||
-                typeof vm.runtime.getOpcodeFunction?.(opcode) === 'function'
+                typeof vm.runtime.getOpcodeFunction?.(opcode) === 'function' ||
+                registeredShadow
             )
         )
             throw fail(
                 'PROJECT_PATCH_EXTENSION',
                 `The required block definition is not available: ${opcode}`,
             );
+    }
 }
 const safeKey = (key) =>
     typeof key === 'string' &&
@@ -636,10 +666,8 @@ export async function prepareProjectPatch({ vm, baseProject, candidateProject, a
         baseProject.extensionStorage ?? {},
         candidateProject.extensionStorage ?? {},
     );
-    const opcodes = plans.flatMap((p) =>
-        [...p.converted.additions.values()].map((block) => block.opcode),
-    );
-    await ensureExtensions(vm, baseProject, candidateProject, opcodes, assertCurrent);
+    const changedBlocks = plans.flatMap((p) => [...p.converted.additions.values()]);
+    await ensureExtensions(vm, baseProject, candidateProject, changedBlocks, assertCurrent);
     assertCurrent();
     const storagePlan = planStorageChanges(vm.runtime.extensionStorage, storage);
     const workspace = vm[projectPatchWorkspaceAdapterSymbol];
@@ -663,6 +691,7 @@ export async function prepareProjectPatch({ vm, baseProject, candidateProject, a
         storagePlan,
         ui,
         targetChanges,
+        changedBlocks,
         runtime: vm.runtime,
         originals,
         used: false,
@@ -677,6 +706,8 @@ export function applyProjectPatch(token) {
     assertCurrent();
     if (vm.runtime !== plan.runtime || plan.originals.some((t) => !vm.runtime.targets.includes(t)))
         throw fail('PROJECT_CONFLICT', 'The VM targets changed.');
+    assertBlockDefinitions(vm, plan.changedBlocks);
+    assertCurrent();
     plan.used = true;
     patches.delete(token);
     const forces = plans.map((p) => p.target.blocks.forceNoGlow);
