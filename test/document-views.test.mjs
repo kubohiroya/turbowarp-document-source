@@ -3,6 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createEmbeddedDocumentProvider } from "../src/document-views.js";
 import { createSourceDocumentStore } from "@kubohiroya/turbowarp-document-data/source-documents";
+import { createSourceDocumentRegistry } from "@kubohiroya/turbowarp-document-data/composition";
 import { encodeReference } from "../src/reference.js";
 import { readDocumentViewMetadata } from "../src/view-metadata.js";
 const ref = { providerId: "document-data", documentId: "story" };
@@ -177,13 +178,12 @@ test("dry run creates no source copy, applies native blocks, then unchanged reve
   await assert.rejects(async () => active.prepare(snap, "message: changed\n"), {
     code: "DOCUMENT_VIEW_ACTIVE",
   });
-  await assert.rejects(
-    active.prepareRepresentation(snap, {
-      kind: "yaml-blocks",
-      direction: "from-source",
-    }),
-    { code: "DOCUMENT_VIEW_ACTIVE" },
-  );
+  const unchanged = await active.prepareRepresentation(snap, {
+    kind: "yaml-blocks",
+    direction: "from-source",
+  });
+  assert.equal(unchanged.source, source);
+  assert.equal(f.project.extensionStorage.kubohiroyadocumentdata.documents.story.revision, "1");
   const reverse = await active.prepareRepresentation(snap, {
     kind: "yaml-blocks",
     direction: "to-source",
@@ -297,6 +297,7 @@ test("stale source revisions, foreign blocks, duplicate roots and externally sha
       root.inputs.BAD = { name: "BAD", block: "unrelated", shadow: null };
     const before = structuredClone(f.project);
     await assert.rejects(conversion(f, "to-source"));
+    await assert.rejects(conversion(f, "from-source"));
     assert.deepEqual(f.project, before);
     assert.equal(f.loads, 0);
     f.provider.dispose();
@@ -417,4 +418,36 @@ test("document previews reflect the same edited active graph without mutating so
   assert.deepEqual(f.project, before);
   assert.equal(f.loads, loads);
   f.provider.dispose();
+});
+
+for (const format of ["yaml", "json"]) test(`canonical registry same-kind ${format} Save commits the cached displayed source and retains the current view`, async () => {
+  const f = await fixture({format,text:format === "yaml" ? source : '{"message":"Hello"}\r\n'});
+  const initial = await conversion(f,"from-source");await initial.a.commitRepresentation(initial.s,initial.c);
+  const registry = createSourceDocumentRegistry();registry.register(f.provider);
+  const scalar=Object.values(liveBlocks(f)).find(b=>b.opcode.endsWith("_yamlScalar")&&f.targets[0].blocks.getBlock(b.inputs.VALUE.block).fields.TEXT?.value === "Hello");
+  editText(f,scalar,"Saved in same kind");
+  if(format === "yaml"){
+    const comment=Object.values(liveBlocks(f)).find(b=>b.opcode.endsWith("_yamlLineComment"));
+    f.targets[0].blocks.getBlock(comment.inputs.TEXT.block).fields.TEXT.value=" edited greeting";
+  }
+  const before=structuredClone(f.project),other=before.extensionStorage.kubohiroyadocumentdata.documents.other,unrelated=liveBlocks(f).unrelated;
+  const adapter=registry.open(ref),snapshot=adapter.capture();
+  assert.deepEqual(registry.list()[0].representations[0].fromRepresentations,["yaml-blocks"]);
+  const preview=await adapter.previewRepresentation(snapshot,{kind:"yaml-blocks"});
+  assert.deepEqual(f.project,before);assert(preview.source.includes("Saved in same kind"));
+  if(format === "yaml"){assert(preview.source.includes("# edited greeting"));assert(preview.source.includes("# inline"));assert(preview.source.includes("\r\n"));}
+  const candidate=await adapter.prepareRepresentation(snapshot,{kind:"yaml-blocks",direction:"from-source"});
+  assert.equal(candidate.source,preview.source);await adapter.commitRepresentation(snapshot,candidate);
+  const saved=f.project.extensionStorage.kubohiroyadocumentdata;
+  assert.equal(saved.documents.story.source,preview.source);assert.equal(saved.documents.story.revision,"2");
+  assert.equal(readDocumentViewMetadata(saved,ref).activeKind,"yaml-blocks");
+  assert.equal(readDocumentViewMetadata(saved,ref).descriptors["yaml-blocks"].baseSourceRevision,"2");
+  assert.deepEqual(saved.documents.other,other);assert.equal(liveBlocks(f).unrelated,unrelated);assert.equal(f.targets[0].sprite.costumes[0].asset,f.asset);
+  const visible = Object.keys(preview.blocks).sort();
+  const actual = Object.keys(f.project.targets[0].blocks).filter(id=>id!=="unrelated").sort();assert.deepEqual(actual,visible);
+  const stable=structuredClone(f.project),fresh=adapter.capture();
+  await adapter.previewRepresentation(fresh,{kind:"yaml-blocks"});
+  const noOp=await adapter.prepareRepresentation(fresh,{kind:"yaml-blocks",direction:"from-source"});await adapter.commitRepresentation(fresh,noOp);assert.deepEqual(f.project,stable);
+  assert.equal(f.counts.saves,0);assert.equal(f.counts.loads,0);assert.equal(f.counts.stops,0);
+  registry.dispose();
 });

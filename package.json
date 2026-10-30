@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-embedded-yaml",
-  "version": "0.1.0-rc.0",
+  "version": "0.1.0-rc.1",
   "description": "Embedded YAML hat declarations and Editor entry points using the canonical Document Data source contract.",
   "type": "module",
   "sideEffects": false,
@@ -69,7 +69,7 @@
     "tag": "next"
   },
   "dependencies": {
-    "@kubohiroya/turbowarp-document-data": "0.5.0-rc.0",
+    "@kubohiroya/turbowarp-document-data": "0.5.0-rc.1",
     "@kubohiroya/turbowarp-yaml-json": "0.8.0-rc.0"
   },
   "devDependencies": {
