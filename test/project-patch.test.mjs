@@ -495,3 +495,186 @@ test('unused extension metadata additions do not request permission or execute e
     removed.candidate = { ...removed.base, extensions: [] };
     await assert.rejects(prepareProjectPatch(removed), { code: 'PROJECT_PATCH_UNSUPPORTED' });
 });
+
+function menuFixture() {
+    const f = fixture();
+    f.candidate.targets[0].blocks.new = block('added_transition', 'hat', null, {
+        EFFECT: [1, 'menu'],
+    });
+    f.candidate.targets[0].blocks.menu = {
+        ...block('added_menu_effect', 'new', null, {}, { effect: ['fadeOut', null] }, false),
+        shadow: true,
+    };
+    f.vm.extensionManager.isExtensionLoaded = (id) => id === 'added';
+    // The pinned VM exposes command definitions here, but not its separately registered menus.
+    f.vm.runtime.getBlocksJSON = () => [{ type: 'added_transition' }];
+    return f;
+}
+const unchangedPatchState = (f) => ({
+    blocks: [...f.target.blocks.map],
+    scripts: f.target.blocks.getScripts().slice(),
+    storage: copy(f.vm.runtime.extensionStorage),
+    counts: { ...f.counts },
+});
+const workspacePort = (hasBlockDefinition) => ({
+    ...(hasBlockDefinition === undefined ? {} : { hasBlockDefinition }),
+    prepare: () => ({ apply() {}, rollback() {} }),
+});
+
+test('a host-attested registered menu shadow is checked during prepare and immediately before apply', async () => {
+    const f = menuFixture(),
+        probes = [];
+    installProjectPatchWorkspaceAdapter(
+        f.vm,
+        workspacePort((type) => {
+            probes.push(type);
+            return type === 'added_menu_effect';
+        }),
+    );
+    const originalAssets = f.vm.runtime.extensionStorage.owner.assets;
+    const token = await prepareProjectPatch(f);
+    assert.deepEqual(probes, ['added_menu_effect']);
+    assert(f.target.blocks.getBlock('old'));
+    applyProjectPatch(token);
+    assert.deepEqual(probes, ['added_menu_effect', 'added_menu_effect']);
+    assert.equal(f.target.blocks.getBlock('menu').shadow, true);
+    assert.equal(f.target.blocks.getBlock('menu').opcode, 'added_menu_effect');
+    assert.equal(f.vm.runtime.extensionStorage.owner.assets, originalAssets);
+    assert.deepEqual(
+        [f.counts.stop, f.counts.save, f.counts.load, f.counts.extensionLoads],
+        [0, 0, 0, 0],
+    );
+});
+
+for (const [name, probe] of [
+    ['missing', undefined],
+    ['false', () => false],
+    [
+        'throwing',
+        () => {
+            throw Error('Definition probe failed');
+        },
+    ],
+    ['unknown', (type) => type === 'different_menu'],
+    ['truthy non-boolean', () => 'true'],
+    ['asynchronous', () => Promise.resolve(true)],
+    ['rejecting asynchronous', async () => { throw Error('Rejected async proof'); }],
+    ['rejecting thenable', () => ({then(_resolve, reject) { reject(Error('Rejected thenable proof')); }})],
+]) {
+    test(`a ${name} menu capability safely rejects before VM or workspace mutation`, async () => {
+        const f = menuFixture();
+        if (probe) installProjectPatchWorkspaceAdapter(f.vm, workspacePort(probe));
+        const before = unchangedPatchState(f);
+        await assert.rejects(prepareProjectPatch(f), {
+            code: 'PROJECT_PATCH_EXTENSION',
+        });
+        assert.deepEqual(unchangedPatchState(f), before);
+        // Let Node observe rejected asynchronous proof; the host probe must have consumed it.
+        await new Promise((resolve) => setImmediate(resolve));
+    });
+}
+
+test('host capability cannot approve an unknown non-shadow command', async () => {
+    const f = menuFixture();
+    f.candidate.targets[0].blocks.new.opcode = 'added_unknown';
+    let calls = 0;
+    installProjectPatchWorkspaceAdapter(
+        f.vm,
+        workspacePort(() => {
+            calls++;
+            return true;
+        }),
+    );
+    const before = unchangedPatchState(f);
+    await assert.rejects(prepareProjectPatch(f), {
+        code: 'PROJECT_PATCH_EXTENSION',
+    });
+    assert.equal(calls, 0);
+    assert.deepEqual(unchangedPatchState(f), before);
+});
+
+test('registered menu proof revoked or throwing after prepare rejects apply without consuming the patch', async () => {
+    for (const revoked of ['false', 'throw', 'dispose']) {
+        const f = menuFixture();
+        let available = true;
+        const dispose = installProjectPatchWorkspaceAdapter(
+            f.vm,
+            workspacePort(() => {
+                if (available) return true;
+                if (revoked === 'throw') throw Error('Definition removed');
+                return false;
+            }),
+        );
+        const token = await prepareProjectPatch(f),
+            before = unchangedPatchState(f);
+        available = false;
+        if (revoked === 'dispose') dispose();
+        assert.throws(() => applyProjectPatch(token), {
+            code: 'PROJECT_PATCH_EXTENSION',
+        });
+        assert.deepEqual(unchangedPatchState(f), before);
+        available = true;
+        if (revoked !== 'dispose') assert.equal(applyProjectPatch(token).projectPatched, true);
+    }
+});
+
+test('ordinary VM definitions and executable primitives do not require a host menu capability', async () => {
+    for (const existing of ['definition', 'primitive']) {
+        const f = menuFixture();
+        if (existing === 'definition')
+            f.vm.runtime.getBlocksJSON = () => [
+                { type: 'added_transition' },
+                { type: 'added_menu_effect' },
+            ];
+        else
+            f.vm.runtime.getOpcodeFunction = (type) =>
+                type === 'added_menu_effect' ? () => false : undefined;
+        installProjectPatchWorkspaceAdapter(
+            f.vm,
+            workspacePort(() => {
+                throw Error('Must not probe');
+            }),
+        );
+        const token = await prepareProjectPatch(f);
+        assert.equal(applyProjectPatch(token).projectPatched, true);
+    }
+});
+
+test('a registered GUI definition does not bypass extension security approval', async () => {
+    const f = menuFixture();
+    f.vm.extensionManager.isExtensionLoaded = () => false;
+    f.candidate.extensions = ['added'];
+    f.candidate.extensionURLs = {
+        added: 'https://example.invalid/extension.js',
+    };
+    f.vm.securityManager.canLoadExtensionFromProject = async () => false;
+    let calls = 0;
+    installProjectPatchWorkspaceAdapter(
+        f.vm,
+        workspacePort(() => {
+            calls++;
+            return true;
+        }),
+    );
+    await assert.rejects(prepareProjectPatch(f), {
+        code: 'PROJECT_PATCH_EXTENSION',
+    });
+    assert.equal(calls, 0);
+    assert.equal(f.counts.extensionLoads, 0);
+});
+
+test('a host definition probe cannot evade the current-project guard during apply', async () => {
+    const f = menuFixture();
+    let count = 0;
+    installProjectPatchWorkspaceAdapter(
+        f.vm,
+        workspacePort(() => {
+            if (++count === 2) f.stale();
+            return true;
+        }),
+    );
+    const token = await prepareProjectPatch(f),
+        before = unchangedPatchState(f);
+    assert.throws(() => applyProjectPatch(token), { code: 'PROJECT_CONFLICT' });
+    assert.deepEqual(unchangedPatchState(f), before);
+});

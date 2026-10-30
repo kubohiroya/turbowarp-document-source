@@ -8,6 +8,10 @@ import {
 const vm: any = {};
 const possible: boolean = canPatchProject(vm);
 const dispose = installProjectPatchWorkspaceAdapter(vm, {
+    hasBlockDefinition(type) {
+        const blockType: string = type;
+        return blockType === 'registered_menu';
+    },
     prepare({ targetChanges }) {
         const changes: readonly ProjectPatchTargetChange[] = targetChanges;
         void changes;

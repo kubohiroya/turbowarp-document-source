@@ -7,6 +7,8 @@ export interface ProjectPatchTargetChange {
     readonly changedCommentIds: readonly string[];
 }
 export interface ProjectPatchWorkspaceAdapter {
+    /** Synchronously attest a registered public GUI block definition; only used for shadows. */
+    hasBlockDefinition?(type: string): boolean;
     prepare(input: { readonly targetChanges: readonly ProjectPatchTargetChange[] }): {
         apply(): void;
         rollback(): void;
