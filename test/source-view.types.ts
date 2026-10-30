@@ -1,0 +1,14 @@
+import {createYamlSourceBlockView,readYamlSourceBlockView} from '@kubohiroya/turbowarp-embedded-yaml/source-view';
+import {createYamlBlockView,readYamlBlockView,type YamlSyntaxNode} from '@kubohiroya/turbowarp-embedded-yaml/yaml-blocks';
+import {parseSourceSyntax,applySourceSyntaxEdits,type SourceSyntaxNode} from '@kubohiroya/turbowarp-yaml-json/source-syntax';
+import type {SourceDocumentReference} from '@kubohiroya/turbowarp-document-data/composition';
+const reference:SourceDocumentReference={providerId:'owner',documentId:'main'};
+const syntax=parseSourceSyntax('value: 1\n',{format:'yaml'});
+const tree:YamlSyntaxNode=syntax.tree;
+const view=createYamlBlockView({reference,tree,rootId:'hat',rootOpcode:'owner_hat'});
+const read:SourceSyntaxNode=readYamlBlockView(view);
+applySourceSyntaxEdits(syntax.baseline,[{op:'replace-tree',tree:read}]);
+const sourceView=createYamlSourceBlockView({reference,source:'value: 1\n',sourceRevision:'1',rootId:'hat',rootOpcode:'owner_hat'});
+const result=readYamlSourceBlockView({...sourceView,sourceRevision:'1'});
+const format:'yaml'|'json'=result.format;
+void format;

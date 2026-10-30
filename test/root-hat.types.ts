@@ -1,0 +1,10 @@
+import {createEmbeddedYamlRootHatDefinition, registerEmbeddedYamlRootHatShape, validateEmbeddedYamlFilename, validateEmbeddedYamlRelativePath, createEmbeddedYamlRootMarker, validateEmbeddedYamlRootMarker} from '../index.js';
+const definition = createEmbeddedYamlRootHatDefinition({defaultVersion:'4.0',BlockType:{HAT:'hat'},defaultReference:{providerId:'owner',documentId:'story'}});
+const terminal:true = definition.isTerminal;
+const names:readonly string[] = definition.extensions;
+registerEmbeddedYamlRootHatShape({Extensions:{register(_name:string,_callback:()=>void){}}});
+const filename:string = validateEmbeddedYamlFilename('台本.k4.yml');
+const path:string = validateEmbeddedYamlRelativePath('章/台本.k4.yml');
+const marker = createEmbeddedYamlRootMarker({version:'4.0',opcode:'owner_embeddedYamlRoot',reference:{providerId:'owner',documentId:'story'}});
+const provider:string=validateEmbeddedYamlRootMarker(marker).providerId;
+void [terminal,names,filename,path,provider];

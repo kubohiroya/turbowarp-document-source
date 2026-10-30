@@ -1,0 +1,57 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+  id-token: write
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Verify the version and main commit
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME#v}" = "$(node -p 'require("./package.json").version')"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$GITHUB_SHA"
+      - name: Pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/npm"
+          npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/npm" > "$RUNNER_TEMP/pack.json"
+          echo "NPM_ARCHIVE=$RUNNER_TEMP/npm/$(node -p 'require(process.env.RUNNER_TEMP + "/pack.json")[0].filename')" >> "$GITHUB_ENV"
+      - name: Create Release and attach package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --verify-tag --prerelease --title "$GITHUB_REF_NAME" --generate-notes
+          want="sha256:$(sha256sum "$NPM_ARCHIVE" | cut -f1 -d' ')"
+          filename="$(basename "$NPM_ARCHIVE")"
+          have="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" --jq ".assets[] | select(.name == \"$filename\") | .digest")"
+          if [ -n "$have" ]; then
+            test "$have" = "$want"
+          else
+            gh release upload "$GITHUB_REF_NAME" "$NPM_ARCHIVE"
+          fi
+      - name: Publish the verified archive
+        run: |
+          set -euo pipefail
+          name="$(node -p 'require("./package.json").name')"
+          version="$(node -p 'require("./package.json").version')"
+          have="$(npm view "$name@$version" dist.shasum --prefer-online 2>/dev/null || true)"
+          want="$(sha1sum "$NPM_ARCHIVE" | cut -f1 -d' ')"
+          if [ -n "$have" ]; then
+            test "$have" = "$want"
+          else
+            npm publish "$NPM_ARCHIVE" --access public --provenance --tag next
+          fi
