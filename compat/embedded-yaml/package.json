@@ -1,0 +1,70 @@
+{
+  "name": "@kubohiroya/turbowarp-embedded-yaml",
+  "version": "0.1.0-rc.3",
+  "description": "Compatibility facade for turbowarp-document-source.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./package.json": "./package.json",
+    "./assets/yaml-file.svg": "./assets/yaml-file.svg",
+    "./yaml-blocks": {
+      "types": "./src/yaml-blocks.d.ts",
+      "import": "./src/yaml-blocks.js"
+    },
+    "./source-view": {
+      "types": "./src/yaml-source-view.d.ts",
+      "import": "./src/yaml-source-view.js"
+    },
+    "./runtime": {
+      "types": "./src/runtime.d.ts",
+      "import": "./src/runtime.js"
+    },
+    "./project-views": {
+      "types": "./src/project-views.d.ts",
+      "import": "./src/project-views.js"
+    },
+    "./view-metadata": {
+      "types": "./src/view-metadata.d.ts",
+      "import": "./src/view-metadata.js"
+    },
+    "./document-views": {
+      "types": "./src/document-views.d.ts",
+      "import": "./src/document-views.js"
+    },
+    "./assets/yaml-block.svg": "./assets/yaml-block.svg"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "src",
+    "assets",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "MPL-2.0",
+  "author": {
+    "name": "Hiroya Kubo",
+    "email": "hiroya@cuc.ac.jp",
+    "url": "https://github.com/kubohiroya"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kubohiroya/turbowarp-document-source.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  },
+  "dependencies": {
+    "@kubohiroya/turbowarp-document-source": "0.1.0-rc.0"
+  }
+}

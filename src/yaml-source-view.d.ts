@@ -21,7 +21,9 @@ export function createYamlSourceBlockView(options: {
     descriptor: YamlViewDescriptor;
 };
 export function readYamlSourceBlockView(options: {
-    baseline: SourceSyntaxBaseline;
+    baseline?: SourceSyntaxBaseline;
+    source?: string;
+    format?: 'yaml' | 'json';
     blocks: Record<string, any>;
     descriptor: YamlViewDescriptor;
     sourceRevision?: string;

@@ -20,12 +20,14 @@ export function createYamlSourceBlockView({
     }
     return { baseline: syntax.baseline, ...view };
 }
-export function readYamlSourceBlockView({ baseline, blocks, descriptor, sourceRevision }) {
+export function readYamlSourceBlockView({ baseline, source, format = 'yaml', blocks, descriptor, sourceRevision }) {
     if (
         descriptor.baseSourceRevision !== undefined &&
         descriptor.baseSourceRevision !== sourceRevision
     )
         fail('YAML_BLOCK_VIEW_STALE', 'The source changed after this block view was created.');
     const tree = readYamlBlockView({ blocks, descriptor });
+    // Keep opaque syntax baselines inside the codec's own module instance.
+    if (source !== undefined) baseline = parseSourceSyntax(source, {format}).baseline;
     return applySourceSyntaxEdits(baseline, [{ op: 'replace-tree', tree }]);
 }
