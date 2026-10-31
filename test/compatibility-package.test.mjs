@@ -25,8 +25,8 @@ test('packed legacy APIs resolve to one packed canonical implementation', async 
             execFileSync('tar', ['-xzf', archive, '--strip-components', '1', '-C', destination]);
         }
         for (const name of ['turbowarp-document-data', 'turbowarp-yaml-json']) {
-            const metadata = fileURLToPath(import.meta.resolve('@kubohiroya/' + name + '/package.json'));
-            await fs.symlink(path.dirname(metadata), path.join(scope, name));
+            const dependency = await fs.realpath(path.join(root, 'node_modules/@kubohiroya', name));
+            await fs.symlink(dependency, path.join(scope, name));
         }
         const previous = await import(pathToFileURL(path.join(facade, 'index.js')).href);
         const current = await import(pathToFileURL(path.join(canonical, 'index.js')).href);
