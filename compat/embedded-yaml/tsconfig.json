@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.build.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "paths": {
+      "@kubohiroya/turbowarp-document-source": ["../../dist/index.d.ts"],
+      "@kubohiroya/turbowarp-document-source/document-views": ["../../dist/document-views.d.ts"],
+      "@kubohiroya/turbowarp-document-source/project-views": ["../../dist/project-views.d.ts"],
+      "@kubohiroya/turbowarp-document-source/runtime": ["../../dist/runtime.d.ts"],
+      "@kubohiroya/turbowarp-document-source/source-view": ["../../dist/yaml-source-view.d.ts"],
+      "@kubohiroya/turbowarp-document-source/view-metadata": ["../../dist/view-metadata.d.ts"],
+      "@kubohiroya/turbowarp-document-source/yaml-blocks": ["../../dist/yaml-blocks.d.ts"]
+    }
+  },
+  "include": ["src"]
+}

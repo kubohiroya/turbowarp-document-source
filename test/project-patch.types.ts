@@ -4,8 +4,8 @@ import {
     canPatchProject,
     installProjectPatchWorkspaceAdapter,
     type ProjectPatchTargetChange,
-} from '../src/project-patch.js';
-const vm: any = {};
+} from '../src/project-patch.ts';
+const vm: unknown = {};
 const possible: boolean = canPatchProject(vm);
 const dispose = installProjectPatchWorkspaceAdapter(vm, {
     hasBlockDefinition(type) {
