@@ -4,45 +4,43 @@
   "description": "Compatibility facade for turbowarp-document-source.",
   "type": "module",
   "sideEffects": false,
-  "main": "./index.js",
-  "types": "./index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "import": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./package.json": "./package.json",
     "./assets/yaml-file.svg": "./assets/yaml-file.svg",
     "./yaml-blocks": {
-      "types": "./src/yaml-blocks.d.ts",
-      "import": "./src/yaml-blocks.js"
+      "types": "./dist/yaml-blocks.d.ts",
+      "import": "./dist/yaml-blocks.js"
     },
     "./source-view": {
-      "types": "./src/yaml-source-view.d.ts",
-      "import": "./src/yaml-source-view.js"
+      "types": "./dist/yaml-source-view.d.ts",
+      "import": "./dist/yaml-source-view.js"
     },
     "./runtime": {
-      "types": "./src/runtime.d.ts",
-      "import": "./src/runtime.js"
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
     },
     "./project-views": {
-      "types": "./src/project-views.d.ts",
-      "import": "./src/project-views.js"
+      "types": "./dist/project-views.d.ts",
+      "import": "./dist/project-views.js"
     },
     "./view-metadata": {
-      "types": "./src/view-metadata.d.ts",
-      "import": "./src/view-metadata.js"
+      "types": "./dist/view-metadata.d.ts",
+      "import": "./dist/view-metadata.js"
     },
     "./document-views": {
-      "types": "./src/document-views.d.ts",
-      "import": "./src/document-views.js"
+      "types": "./dist/document-views.d.ts",
+      "import": "./dist/document-views.js"
     },
     "./assets/yaml-block.svg": "./assets/yaml-block.svg"
   },
   "files": [
-    "index.js",
-    "index.d.ts",
-    "src",
+    "dist",
     "assets",
     "README.md",
     "LICENSE"

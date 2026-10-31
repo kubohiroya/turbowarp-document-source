@@ -1,4 +1,4 @@
-import {createEmbeddedYamlRootHatDefinition, registerEmbeddedYamlRootHatShape, validateEmbeddedYamlFilename, validateEmbeddedYamlRelativePath, createEmbeddedYamlRootMarker, validateEmbeddedYamlRootMarker} from '../index.js';
+import {createEmbeddedYamlRootHatDefinition, registerEmbeddedYamlRootHatShape, validateEmbeddedYamlFilename, validateEmbeddedYamlRelativePath, createEmbeddedYamlRootMarker, validateEmbeddedYamlRootMarker} from '../src/index.ts';
 const definition = createEmbeddedYamlRootHatDefinition({defaultVersion:'4.0',BlockType:{HAT:'hat'},defaultReference:{providerId:'owner',documentId:'story'}});
 const terminal:true = definition.isTerminal;
 const names:readonly string[] = definition.extensions;

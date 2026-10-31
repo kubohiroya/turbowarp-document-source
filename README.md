@@ -51,3 +51,17 @@ URL設定は `extensionStorage[所有拡張ID].documentSourceLocations` に保�
 共通パッケージはambient fetchを参照しません。`fetchDocumentSource`、およびURL操作を有効にする提供元登録には、ホストが通信関数を明示的に渡します。App CoreはURLを解決するためのcallbackを受け取り、提供されないURL参照を拒否します。
 
 ローカルの互換層検証では `TW_LEGACY_EMBEDDED_YAML=/path/to/legacy-embedded-yaml` を指定します。共通パッケージ単独の検証は互換層を必要とせず、この照合だけをスキップします。
+
+## 開発
+
+実装・テスト・スクリプトはTypeScriptです。Node.js 26（`.nvmrc`）は `.ts` を直接実行するため、テストとスクリプトにビルドは不要です。
+
+| コマンド | 内容 |
+| --- | --- |
+| `npm run typecheck` | `src`・`scripts`・互換層と `test` を型検査します |
+| `npm test` | `node --test test/*.test.ts` |
+| `npm run build` | `src` から `dist/`、互換層の `src` から `compat/embedded-yaml/dist/` へJavaScriptと型定義を出力します |
+| `npm run check:dist` | 再ビルドした出力がコミット済みの `dist` と一致することを確認します |
+| `npm run check` | 上記すべてと `pack:check` |
+
+公開する `exports` は `dist/` を指します。git参照で導入する利用側がビルドせずに使えるよう、`dist/` はコミットします。`src` を変更したら `npm run build` の結果も同じコミットに含めます。

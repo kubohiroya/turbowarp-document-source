@@ -1,0 +1,15 @@
+export { EmbeddedYamlError, encodeReference, decodeReference, readReference } from "./reference.js";
+export { embeddedYamlFileIconURI, yamlBlockIconURI } from "./icon.js";
+export { createEmbeddedYamlHatDefinition, createEmbeddedYamlDocumentMenu } from "./hat.js";
+export { createEmbeddedYamlMarker, installEmbeddedYamlMarker, removeEmbeddedYamlMarkers } from "./marker.js";
+export { createProviderRegistry, getProviderRegistry, providerRegistrySymbol } from "./registry.js";
+export { normalizeSchemaMetadata, embeddedYamlSchemaLimits } from "./schema.js";
+export { createEmbeddedYamlRootHatDefinition, registerEmbeddedYamlRootHatShape, embeddedYamlRootShapeExtension, embeddedYamlRootHatShapeExtension, createEmbeddedYamlRootVersionMenu } from "./hat.js";
+export { createEmbeddedYamlRootMarker, validateEmbeddedYamlRootMarker, readEmbeddedYamlRootVersion, installEmbeddedYamlRootMarker } from "./marker.js";
+export { validateEmbeddedYamlFilename, validateEmbeddedYamlRelativePath } from "./filename.js";
+export { normalizeDocumentSource, normalizeDocumentSourceURL, documentSourceModes, documentSourceStorageKey, readDocumentSourceURLs, writeDocumentSourceURL, fetchDocumentSource } from "./document-source.js";
+export { getDocumentSourceRegistry } from "./source-registry.js";
+export { createDocumentSourceHatDefinition, createDocumentSourceRootHatDefinition } from "./source-hat.js";
+export { readReference as readDocumentSourceReference } from "./reference.js";
+export { createEmbeddedYamlDocumentMenu as createDocumentSourceMenu, registerEmbeddedYamlRootHatShape as registerDocumentSourceRootHatShape } from "./hat.js";
+export { createEmbeddedYamlMarker as createDocumentSourceMarker, installEmbeddedYamlMarker as installDocumentSourceMarker, createEmbeddedYamlRootMarker as createDocumentSourceRootMarker, installEmbeddedYamlRootMarker as installDocumentSourceRootMarker } from "./marker.js";

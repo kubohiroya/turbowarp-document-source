@@ -1,0 +1,33 @@
+export {EmbeddedYamlError, encodeReference, decodeReference, readReference} from './reference.ts';
+export {embeddedYamlFileIconURI, yamlBlockIconURI} from './icon.ts';
+export {createEmbeddedYamlHatDefinition, createEmbeddedYamlDocumentMenu} from './hat.ts';
+export {createEmbeddedYamlMarker, installEmbeddedYamlMarker, removeEmbeddedYamlMarkers} from './marker.ts';
+export {createProviderRegistry, getProviderRegistry, providerRegistrySymbol} from './registry.ts';
+export {normalizeSchemaMetadata, embeddedYamlSchemaLimits} from './schema.ts';
+export {createEmbeddedYamlRootHatDefinition, registerEmbeddedYamlRootHatShape, embeddedYamlRootShapeExtension, embeddedYamlRootHatShapeExtension, createEmbeddedYamlRootVersionMenu} from './hat.ts';
+export {createEmbeddedYamlRootMarker, validateEmbeddedYamlRootMarker, readEmbeddedYamlRootVersion, installEmbeddedYamlRootMarker} from './marker.ts';
+export {validateEmbeddedYamlFilename, validateEmbeddedYamlRelativePath} from './filename.ts';
+
+export {normalizeDocumentSource, normalizeDocumentSourceURL, documentSourceModes, documentSourceStorageKey, readDocumentSourceURLs, writeDocumentSourceURL, fetchDocumentSource} from './document-source.ts';
+export {getDocumentSourceRegistry} from './source-registry.ts';
+export {createDocumentSourceHatDefinition, createDocumentSourceRootHatDefinition} from './source-hat.ts';
+export {readReference as readDocumentSourceReference} from './reference.ts';
+export {createEmbeddedYamlDocumentMenu as createDocumentSourceMenu, registerEmbeddedYamlRootHatShape as registerDocumentSourceRootHatShape} from './hat.ts';
+export {createEmbeddedYamlMarker as createDocumentSourceMarker, installEmbeddedYamlMarker as installDocumentSourceMarker, createEmbeddedYamlRootMarker as createDocumentSourceRootMarker, installEmbeddedYamlRootMarker as installDocumentSourceRootMarker} from './marker.ts';
+
+export type {
+    SourceDocumentSchemaMetadata as EmbeddedYamlSchemaMetadata,
+    SourceDocumentReference as EmbeddedYamlReference,
+    SourceDocumentMetadata as EmbeddedYamlMetadata,
+    RegisteredSourceDocumentMetadata as RegisteredEmbeddedYamlMetadata,
+    SourceDocumentAvailability as EmbeddedYamlAvailability,
+    SourceDocumentSnapshot as EmbeddedYamlSnapshot,
+    SourceDocumentPrepared as EmbeddedYamlPrepared,
+    SourceDocumentAdapter as EmbeddedYamlDocumentAdapter,
+    SourceDocumentProvider as EmbeddedYamlProvider,
+    SourceDocumentRegistry as EmbeddedYamlProviderRegistry
+} from '@kubohiroya/turbowarp-document-data/composition';
+export type {EmbeddedYamlHatOptions, EmbeddedYamlRootHatOptions, EmbeddedYamlHatDefinition, EmbeddedYamlRootHatDefinition, EmbeddedYamlMenu, EmbeddedYamlMenuArgument, EmbeddedYamlRootShapeHost} from './hat.ts';
+export type {EmbeddedYamlMarkerOptions, EmbeddedYamlRootMarkerOptions, EmbeddedYamlMarkerBlock} from './marker.ts';
+export type * from './document-source.ts';
+export type {DocumentSourceVM} from './source-registry.ts';

@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "paths": {
+      "@kubohiroya/turbowarp-document-source": ["./src/index.ts"],
+      "@kubohiroya/turbowarp-document-source/document-views": ["./src/document-views.ts"],
+      "@kubohiroya/turbowarp-document-source/project-views": ["./src/project-views.ts"],
+      "@kubohiroya/turbowarp-document-source/runtime": ["./src/runtime.ts"],
+      "@kubohiroya/turbowarp-document-source/source-view": ["./src/yaml-source-view.ts"],
+      "@kubohiroya/turbowarp-document-source/view-metadata": ["./src/view-metadata.ts"],
+      "@kubohiroya/turbowarp-document-source/yaml-blocks": ["./src/yaml-blocks.ts"]
+    }
+  },
+  "include": ["src", "scripts", "compat/embedded-yaml/src"]
+}

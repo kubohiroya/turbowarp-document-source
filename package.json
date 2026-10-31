@@ -4,57 +4,58 @@
   "description": "Document sources from SB3 files, HTTPS URLs, YAML blocks and schema-specific blocks.",
   "type": "module",
   "sideEffects": false,
-  "main": "./index.js",
-  "types": "./index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "import": "./index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./package.json": "./package.json",
     "./assets/yaml-file.svg": "./assets/yaml-file.svg",
     "./yaml-blocks": {
-      "types": "./src/yaml-blocks.d.ts",
-      "import": "./src/yaml-blocks.js"
+      "types": "./dist/yaml-blocks.d.ts",
+      "import": "./dist/yaml-blocks.js"
     },
     "./source-view": {
-      "types": "./src/yaml-source-view.d.ts",
-      "import": "./src/yaml-source-view.js"
+      "types": "./dist/yaml-source-view.d.ts",
+      "import": "./dist/yaml-source-view.js"
     },
     "./runtime": {
-      "types": "./src/runtime.d.ts",
-      "import": "./src/runtime.js"
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
     },
     "./project-views": {
-      "types": "./src/project-views.d.ts",
-      "import": "./src/project-views.js"
+      "types": "./dist/project-views.d.ts",
+      "import": "./dist/project-views.js"
     },
     "./view-metadata": {
-      "types": "./src/view-metadata.d.ts",
-      "import": "./src/view-metadata.js"
+      "types": "./dist/view-metadata.d.ts",
+      "import": "./dist/view-metadata.js"
     },
     "./document-views": {
-      "types": "./src/document-views.d.ts",
-      "import": "./src/document-views.js"
+      "types": "./dist/document-views.d.ts",
+      "import": "./dist/document-views.js"
     },
     "./assets/yaml-block.svg": "./assets/yaml-block.svg",
     "./sources": {
-      "types": "./src/document-source.d.ts",
-      "import": "./sources.js"
+      "types": "./dist/sources.d.ts",
+      "import": "./dist/sources.js"
     }
   },
   "files": [
-    "index.js",
-    "index.d.ts",
-    "src",
+    "dist",
     "assets",
     "README.md",
-    "LICENSE",
-    "sources.js"
+    "LICENSE"
   ],
   "scripts": {
-    "test": "node --test test/*.test.mjs",
-    "pack:check": "npm pack --dry-run --ignore-scripts"
+    "build": "node scripts/build.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p test",
+    "test": "node --test test/*.test.ts",
+    "check:dist": "node scripts/check-dist.ts",
+    "pack:check": "npm pack --dry-run --ignore-scripts",
+    "check": "npm run typecheck && npm test && npm run check:dist && npm run pack:check"
   },
   "engines": {
     "node": ">=22"
@@ -78,6 +79,8 @@
     "@kubohiroya/turbowarp-yaml-json": "0.8.0-rc.0"
   },
   "devDependencies": {
-    "@turbowarp/jszip": "3.12.0"
+    "@turbowarp/jszip": "3.12.0",
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
   }
 }

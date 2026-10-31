@@ -3,7 +3,7 @@ import {
     createYamlBlockMenus,
     createYamlBlockOpcodes,
     type YamlBlockOpcodes,
-} from '../src/yaml-blocks.js';
+} from '../src/yaml-blocks.ts';
 const operations = createYamlBlockOpcodes('owner_');
 const line: string | undefined = operations.lineComment;
 const inline: string | undefined = operations.inlineComment;

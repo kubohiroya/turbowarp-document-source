@@ -30,17 +30,20 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run typecheck
       - run: npm test
+      # The archive ships the committed build output, so it must match the source.
+      - run: npm run check:dist
       - name: Verify the version, tag source and main commit
         run: |
           set -euo pipefail
           main="$(git ls-remote --exit-code origin refs/heads/main | cut -f1)"
           test "$main" = "$(git rev-parse HEAD)"
           if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            node scripts/release-canonical-archive.mjs verify-source --tag "$RELEASE_TAG" --dispatch
+            node scripts/release-canonical-archive.ts verify-source --tag "$RELEASE_TAG" --dispatch
           else
             test "$main" = "$GITHUB_SHA"
-            node scripts/release-canonical-archive.mjs verify-source --tag "$RELEASE_TAG"
+            node scripts/release-canonical-archive.ts verify-source --tag "$RELEASE_TAG"
           fi
       - name: Pack and select the canonical npm archive
         run: |
@@ -48,7 +51,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/npm" "$RUNNER_TEMP/canonical"
           npm pack --ignore-scripts --json --pack-destination "$RUNNER_TEMP/npm" > "$RUNNER_TEMP/pack.json"
           filename="$(node -p 'require(process.env.RUNNER_TEMP + "/pack.json")[0].filename')"
-          node scripts/release-canonical-archive.mjs canonical \
+          node scripts/release-canonical-archive.ts canonical \
             --name "$(node -p 'require("./package.json").name')" \
             --version "$(node -p 'require("./package.json").version')" \
             --candidate "$RUNNER_TEMP/npm/$filename" \
@@ -67,7 +70,7 @@ jobs:
             mkdir -p "$RUNNER_TEMP/existing-release"
             gh release download "$RELEASE_TAG" --pattern "$filename" --dir "$RUNNER_TEMP/existing-release"
             if ! cmp -s "$RUNNER_TEMP/existing-release/$filename" "$NPM_ARCHIVE"; then
-              node scripts/release-canonical-archive.mjs compare --candidate "$NPM_ARCHIVE" --other "$RUNNER_TEMP/existing-release/$filename"
+              node scripts/release-canonical-archive.ts compare --candidate "$NPM_ARCHIVE" --other "$RUNNER_TEMP/existing-release/$filename"
               gh release upload "$RELEASE_TAG" "$NPM_ARCHIVE" --clobber
             fi
           else

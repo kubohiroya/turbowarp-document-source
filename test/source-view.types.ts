@@ -1,5 +1,5 @@
-import {createYamlSourceBlockView,readYamlSourceBlockView} from '@kubohiroya/turbowarp-embedded-yaml/source-view';
-import {createYamlBlockView,readYamlBlockView,type YamlSyntaxNode} from '@kubohiroya/turbowarp-embedded-yaml/yaml-blocks';
+import {createYamlSourceBlockView,readYamlSourceBlockView} from '@kubohiroya/turbowarp-document-source/source-view';
+import {createYamlBlockView,readYamlBlockView,type YamlSyntaxNode} from '@kubohiroya/turbowarp-document-source/yaml-blocks';
 import {parseSourceSyntax,applySourceSyntaxEdits,type SourceSyntaxNode} from '@kubohiroya/turbowarp-yaml-json/source-syntax';
 import type {SourceDocumentReference} from '@kubohiroya/turbowarp-document-data/composition';
 const reference:SourceDocumentReference={providerId:'owner',documentId:'main'};
