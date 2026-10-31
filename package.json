@@ -1,7 +1,7 @@
 {
-  "name": "@kubohiroya/turbowarp-embedded-yaml",
-  "version": "0.1.0-rc.2",
-  "description": "Embedded YAML hat declarations and Editor entry points using the canonical Document Data source contract.",
+  "name": "@kubohiroya/turbowarp-document-source",
+  "version": "0.1.0-rc.0",
+  "description": "Document sources from SB3 files, HTTPS URLs, YAML blocks and schema-specific blocks.",
   "type": "module",
   "sideEffects": false,
   "main": "./index.js",
@@ -37,7 +37,11 @@
       "types": "./src/document-views.d.ts",
       "import": "./src/document-views.js"
     },
-    "./assets/yaml-block.svg": "./assets/yaml-block.svg"
+    "./assets/yaml-block.svg": "./assets/yaml-block.svg",
+    "./sources": {
+      "types": "./src/document-source.d.ts",
+      "import": "./sources.js"
+    }
   },
   "files": [
     "index.js",
@@ -45,7 +49,8 @@
     "src",
     "assets",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "sources.js"
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs",
@@ -62,7 +67,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kubohiroya/turbowarp-embedded-yaml.git"
+    "url": "git+https://github.com/kubohiroya/turbowarp-document-source.git"
   },
   "publishConfig": {
     "access": "public",

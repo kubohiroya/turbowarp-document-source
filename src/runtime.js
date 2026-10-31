@@ -13,7 +13,7 @@ export function createYamlBlockRuntime(
     const extension = {
         getInfo: () => ({
             id: yamlBlockRuntimeId,
-            name: 'Embedded YAML',
+            name: 'YAML blocks',
             color1: '#9a7037',
             color2: '#805b2e',
             color3: '#674923',

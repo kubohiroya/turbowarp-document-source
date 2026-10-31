@@ -64,3 +64,8 @@ export function validateEmbeddedYamlRootMarker(block: unknown, options?: {readon
 export function installEmbeddedYamlRootMarker(project: Record<string,unknown>, options: EmbeddedYamlMarkerOptions & {readonly version:string}): string;
 
 export function readEmbeddedYamlRootVersion(block: unknown): string;
+
+export * from './src/document-source.js';
+export function createDocumentSourceHatDefinition(options: EmbeddedYamlHatOptions & {readonly text?:string}): ReturnType<typeof createEmbeddedYamlHatDefinition>;
+export function createDocumentSourceRootHatDefinition(options: EmbeddedYamlHatOptions & {readonly defaultVersion:string;readonly versionMenuName?:string;readonly text?:string}): ReturnType<typeof createEmbeddedYamlRootHatDefinition>;
+export {readReference as readDocumentSourceReference, createEmbeddedYamlDocumentMenu as createDocumentSourceMenu, registerEmbeddedYamlRootHatShape as registerDocumentSourceRootHatShape, createEmbeddedYamlMarker as createDocumentSourceMarker, installEmbeddedYamlMarker as installDocumentSourceMarker, createEmbeddedYamlRootMarker as createDocumentSourceRootMarker, installEmbeddedYamlRootMarker as installDocumentSourceRootMarker};
