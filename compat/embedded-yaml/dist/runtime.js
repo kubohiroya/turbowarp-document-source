@@ -1,1 +1,1 @@
-export * from '@kubohiroya/turbowarp-document-source/runtime';
+export * from '@kubohiroya/turbowarp-yaml-json/runtime';

@@ -3,7 +3,7 @@ import {
     encodeSourceDocumentReference as encodeReference,
     decodeSourceDocumentReference as decodeReference,
     type SourceDocumentReference
-} from '@kubohiroya/turbowarp-document-data/composition';
+} from './wire.ts';
 export {SourceDocumentError as EmbeddedYamlError, encodeReference, decodeReference};
 /** A VM, ScratchBlocks or serialized SB3 block; only its literal DOCUMENT data is read. */
 export interface ReferenceBlock {

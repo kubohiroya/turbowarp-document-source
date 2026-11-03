@@ -1,1 +1,1 @@
-export * from '@kubohiroya/turbowarp-document-source/source-view';
+export * from '@kubohiroya/turbowarp-yaml-json/source-view';

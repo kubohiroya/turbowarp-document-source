@@ -1,1 +1,1 @@
-export * from '@kubohiroya/turbowarp-document-source/yaml-blocks';
+export * from '@kubohiroya/turbowarp-yaml-json/yaml-blocks';
