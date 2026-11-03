@@ -2,94 +2,93 @@
 
 [English](README.md) | 日本語
 
-TurboWarpの「データソース」ハットと文書編集契約の共通パッケージです。紙芝居に限らず、設定や他のDSLの文書を扱います。紙芝居側では「台本データ」と表示します。
+TurboWarpの拡張とホストが共有する文書参照の契約です。安定した参照、Provider・Adapter・Registryの型、参照元の記述と宣言的な値の検証を提供します。
 
-## 役割と依存関係
+## 責務
 
-文書所有者とホストが共通で利用する、文書の参照・発見・プレビュー・変換・保存の契約を提供します。データソースのハットと安定した参照に加え、Document Dataが所有する単一の文書registryを利用するアダプタを含みます。所有者ごとに表示名を指定できます。
+文書の所有者、エディター、実行ホストが共有するプロトコルを定義します。document-dataやyaml-jsonへの実行時・開発時の依存はありません。registryの生成、SB3文書の保存、URL取得、作品ブロックの変更、YAMLの解析は実装側が担当します。
 
-本パッケージは共通契約と文書向けの実装を含みます。Document Dataと各DSL所有者が原文を所有し、yaml-jsonが構文・コメント保持、structured-dataが構造操作を担当します。
+| パッケージ | 責務 |
+| --- | --- |
+| document-source | 参照、公開型、registryのSymbol、参照元の種類、プロトコル値の検証 |
+| [document-data](https://github.com/kubohiroya/turbowarp-document-data) | registry・原文ストア、HTTPS取得と所在変更の保存、ハット・マーカー、作品への差分適用、文書provider |
+| [yaml-json](https://github.com/kubohiroya/turbowarp-yaml-json) | YAMLブロック表現、原文との変換、構文・コメント保持、実行処理を持たないYAML補助runtime |
 
-ダッシュボードの現在の分類は「データ・ドキュメント」です。document-sourceは同カテゴリのdocument-data・yaml-jsonに依存し、両者は「拡張共通の契約」のnamed-dataやextension-data-editorを実行時または開発時に利用します。このパッケージだけを「拡張共通の契約」へ移すとカテゴリ間の依存が循環します。下位の共通契約として分類するには、先に文書向けの実装から契約を分離する必要があります。
+ダッシュボードではdocument-sourceを「拡張共通の契約」へ分類します。document-dataとyaml-jsonは「データ・ドキュメント」に残り、この契約に依存します。契約から実装への逆依存はありません。
 
 ## 4種類
 
 | 種類 | 所在 | 表現 |
 | --- | --- | --- |
-| embedded-file | SB3の文書保存領域 | YAML/JSONテキスト |
-| url | 外部HTTPS URL | YAML/JSONテキスト |
-| yaml-blocks | SB3のブロック | 汎用YAML構造 |
-| schema-blocks | SB3のブロック | 所有者が定義するDSL専用構造 |
+| `embedded-file` | SB3の文書保存領域 | YAML/JSONテキスト |
+| `url` | 外部HTTPS URL | YAML/JSONテキスト |
+| `yaml-blocks` | SB3のブロック | 汎用YAML構造 |
+| `schema-blocks` | SB3のブロック | 所有者が定義するDSL専用構造 |
 
-providerId/documentIdおよび文書名は形式を変更しても維持します。rootはversionと入口文書名を持ち、前後の接続を持ちません。通常の文書名は空欄にできません。
+`normalizeDocumentSource`は所在と表現を分け、文書名とURLを検証します。通信や保存は行いません。providerId/documentIdと文書名は形式変更時も維持します。rootはversionと入口文書名を持ち、前後の接続を持ちません。通常の文書名は空欄にできません。
 
-`normalizeDocumentSource`は4種類をlocation/representationへ分解します。`getDocumentSourceRegistry(vm)`はDocument Dataの単一registryを利用し、文書を複製しません。YAML/JSONの原文はDocument Dataや各DSL所有者、構文とコメント保持はyaml-json、構造操作はstructured-dataが担当します。本パッケージは参照・ハット・変換と差分適用を接続します。
+## 利用方法
 
-## URLの扱い
+```ts
+import {
+  encodeSourceDocumentReference,
+  normalizeDocumentSource,
+  type SourceDocumentProvider
+} from '@kubohiroya/turbowarp-document-source';
 
-EditorはURL取得/プレビューでは作品を変更せず、保存時に所有者のSchema/DSL検証後に参照URLと検証済みの原文cacheを差分反映します。実行開始時にはURLを再取得して検証します。取得失敗では古いcacheを暗黙に再生しません。
-
-URL内容を外部エディタで編集・ブロックへ変換する場合は、先に「SB3内のファイル」へ変更して保存します。遠隔サイトへPUT等を送信しません。URLはHTTPSのみ、credentials omit、redirect error、UTF-8、既定1MiB/15秒上限です。CORSで取得できる配信元を使用してください。相対includeは登録済みSB3文書名で解決し、外部URLを基準に未知の文書を自動取得しません。
-
-## 所有者の登録
-
-```js
-import {getDocumentSourceRegistry} from '@kubohiroya/turbowarp-document-source';
-
-const registry = getDocumentSourceRegistry(vm);
-const unregister = registry.register(provider, {
-  fetch: window.fetch.bind(window), // Inject the host's network capability explicitly.
-  sourceStorageId: 'myextension', // Must be a loaded owner extension ID.
-  dialogTitle: {ja: '台本データ', en: 'Script data'},
-  async buildSourceCandidate({project, reference, source}) {
-    // Validate the source and update only this owner's caller-owned project copy.
-    return {project: await owner.replaceSource(project, reference, source), source};
-  }
+const reference = {providerId: 'myextension', documentId: 'main'};
+const wire = encodeSourceDocumentReference(reference);
+const descriptor = normalizeDocumentSource({
+  kind: 'embedded-file',
+  filename: 'main.yaml'
 });
+
+// The owner implements the protocol; a host supplies its concrete adapter.
+export function providerFor(adapter: ReturnType<SourceDocumentProvider['open']>): SourceDocumentProvider {
+  return {
+    id: reference.providerId,
+    list: () => [{documentId: reference.documentId, filename: descriptor.filename}],
+    open: () => adapter
+  };
+}
 ```
 
-`prepareDataSource`は取得・検証済みの候補を返します。`commitDataSource`はその同じ候補を利用して文書と参照元を一括で差分適用します。途中の作品変更、異なるセッションの候補、閉じたダイアログは拒否します。SB3圧縮保存・全体再読込は行いません。
+ルートから公開型、参照の符号化・復号とliteral読み取り、文書名・相対パス検証、参照元の正規化、Schemaメタデータと宣言的previewの検証を公開します。プロトコル上の値を検証するもので、Schemaの解釈やDSLの実行は行いません。`/protocol`は実装パッケージ向けの検証補助、`/package.json`はmanifestです。JavaScriptと型定義はコミット済みの`dist/`から提供します。
 
-## 公開エントリポイント
+## 0.1からの移行
 
-| import先 | 役割 |
+0.2では実装APIの再exportを削除します。利用する責務に応じてimport先を変更してください。
+
+| 以前のAPI/import | 新しいimport |
 | --- | --- |
-| `@kubohiroya/turbowarp-document-source` | 参照、ハット、マーカー、Schemaメタデータ、参照元の正規化、HTTPS取得、共通registryのアダプタ |
-| `…/yaml-blocks` | 汎用YAMLブロック表現 |
-| `…/source-view` | 原文とYAMLブロックの変換 |
-| `…/runtime` | YAMLブロックを宣言する、実行処理を持たない補助拡張 |
-| `…/project-views` | 作品の表現プレビュー・変換・差分適用 |
-| `…/view-metadata` | 表現のメタデータ |
-| `…/document-views` | 文書の提供元とストア |
-| `…/sources` | 参照元の型・正規化・URL保存・HTTPS取得とregistryのアダプタ |
+| 参照・公開型・参照元正規化 | `@kubohiroya/turbowarp-document-source` |
+| registryの生成・取得、getDocumentSourceRegistry、HTTPS取得、ハット・マーカー | `@kubohiroya/turbowarp-document-data/document-source` |
+| document-source/project-views | `@kubohiroya/turbowarp-document-data/project-views` |
+| document-source/view-metadata | `@kubohiroya/turbowarp-document-data/view-metadata` |
+| document-source/document-views | `@kubohiroya/turbowarp-document-data/document-views` |
+| document-source/yaml-blocks | `@kubohiroya/turbowarp-yaml-json/yaml-blocks` |
+| document-source/source-view | `@kubohiroya/turbowarp-yaml-json/source-view` |
+| document-source/runtime | `@kubohiroya/turbowarp-yaml-json/runtime` |
+| document-source/sources | 型・正規化はdocument-source、通信・保存・registryの実装はdocument-data/document-source |
+| document-source/assets/yaml-file.svg・assets/yaml-block.svg | document-data/assets/yaml-file.svg・yaml-json/assets/yaml-block.svg |
 
-`…/` は `@kubohiroya/turbowarp-document-source/` の省略です。`package.json` と `assets/yaml-file.svg`・`assets/yaml-block.svg` も公開します。JavaScriptと型定義は `dist/` から提供します。
+[旧npm名の互換層](compat/embedded-yaml/README.ja.md)は、実装側のエントリポイントを再exportします。その依存は契約パッケージ本体から分離します。既存の参照文字列、opcode、保存形式、registry・root shape・project patchの共有Symbolは維持します。
 
-## 互換と導入
+所有者の登録、URL/cacheの扱い、差分適用、フラグと切戻しは[実装ガイド](https://github.com/kubohiroya/turbowarp-document-data/blob/main/docs/source-integration.ja.md)へ移しました。従来の日本語原文も同ガイドに保持します。`twPlusDocumentSource`と`twPlusYamlEditor`は起動時固定・既定OFFを維持します。
 
-従来のembedded-yaml APIは旧名のaliasとして残します。互換パッケージは本パッケージへの再exportに一本化します。既存opcode、文書reference、storage、共有registry Symbolは変更しません。
-
-Editor/Appの新しい参照元操作は起動時 `twPlusDocumentSource=1`、文書UI自体は既存の `twPlusYamlEditor=1` で有効にします。両方とも既定OFFです。切戻しは新フラグを外して再起動し、URL参照を含まない元SB3を利用します。URL参照を含む作品は機能OFF時に取得を拒否し、古いcacheへ暗黙に戻りません。
-
-GitHubリポジトリは既存の履歴・Issueを保持して `turbowarp-document-source` へ改名しています。旧npm名の互換層は `compat/embedded-yaml` に置きます。npm公開・タグ・Releaseはこの変更に含みません。
-
-URL設定は `extensionStorage[所有拡張ID].documentSourceLocations` に保存します。未使用の共通拡張IDの領域は標準SB3シリアライザが省略するため使用しません。
-
-共通パッケージはambient fetchを参照しません。`fetchDocumentSource`、およびURL操作を有効にする提供元登録には、ホストが通信関数を明示的に渡します。App CoreはURLを解決するためのcallbackを受け取り、提供されないURL参照を拒否します。
-
-ローカルの互換層検証では `TW_LEGACY_EMBEDDED_YAML=/path/to/legacy-embedded-yaml` を指定します。共通パッケージ単独の検証は互換層を必要とせず、この照合だけをスキップします。
+公開順は契約 → yaml-json → document-data → 旧名互換層 → 利用側です。利用側はimportと依存をまとめて移行するまで直前の検証済み版を保持します。リポジトリの変更だけでnpm公開・タグ・Release作成は行いません。
 
 ## 開発
 
-実装・テスト・スクリプトはTypeScriptです。Node.js 26（`.nvmrc`）は `.ts` を直接実行するため、テストとスクリプトにビルドは不要です。
+実装・テスト・スクリプトはTypeScriptです。Node.js 26（`.nvmrc`）でテストとスクリプトを直接実行します。
 
 | コマンド | 内容 |
 | --- | --- |
-| `npm run typecheck` | `src`・`scripts`・互換層と `test` を型検査します |
-| `npm test` | `node --test test/*.test.ts` |
-| `npm run build` | `src` から `dist/`、互換層の `src` から `compat/embedded-yaml/dist/` へJavaScriptと型定義を出力します |
-| `npm run check:dist` | 再ビルドした出力がコミット済みの `dist` と一致することを確認します |
-| `npm run pack:check` | lifecycle scriptを実行せず、配布archiveの内容を確認します |
-| `npm run check` | 上記すべてと `pack:check` |
+| `npm run typecheck` | 契約の実装・スクリプト・テストの型検査 |
+| `npm test` | プロトコルと配布archiveの回帰検証 |
+| `npm run build` | JavaScriptと型定義をdistへ生成 |
+| `npm run check:dist` | 再ビルド結果とコミット済み出力の照合 |
+| `npm run pack:check` | lifecycle scriptを実行せず配布内容を確認 |
+| `npm run check` | 上記の検証を実行 |
 
-公開する `exports` は `dist/` を指します。git参照で導入する利用側がビルドせずに使えるよう、`dist/` はコミットします。`src` を変更したら `npm run build` の結果も同じコミットに含めます。
+src変更時は再生成したdistも同じコミットに含めます。旧名互換層は移動先の実装依存を導入した後に別途ビルドします。

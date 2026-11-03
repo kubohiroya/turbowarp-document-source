@@ -1,1 +1,1 @@
-export * from '@kubohiroya/turbowarp-document-source/view-metadata';
+export * from '@kubohiroya/turbowarp-document-data/view-metadata';

@@ -1,4 +1,4 @@
-import type { SourceDocumentReference, RegisteredSourceDocumentMetadata, SourceDocumentSnapshot, SourceDocumentAdapter, SourceDocumentProvider, SourceDocumentRegistry } from '@kubohiroya/turbowarp-document-data/composition';
+import type { SourceDocumentReference, RegisteredSourceDocumentMetadata, SourceDocumentSnapshot, SourceDocumentAdapter, SourceDocumentProvider, SourceDocumentRegistry } from './types.ts';
 export type DocumentSourceKind = 'embedded-file' | 'url' | 'yaml-blocks' | 'schema-blocks';
 export interface DocumentSourceInput {
     readonly kind: DocumentSourceKind;
@@ -73,12 +73,3 @@ export declare const documentSourceModes: readonly DocumentSourceKind[];
 export declare function normalizeDocumentSourceURL(value: unknown): string;
 /** Location and representation are independent; URL sources have a text representation. */
 export declare function normalizeDocumentSource(input: DocumentSourceInput): DocumentSource;
-/** Read persistent locations only. Owner view state remains the authority for block forms. */
-export declare function readDocumentSourceURLs(project: unknown): readonly DocumentSourceURLEntry[];
-/** Persist inside a loaded owner extension so standard SB3 serialization retains it. */
-export declare function writeDocumentSourceURL(project: Record<string, any>, reference: SourceDocumentReference, url: string | null, ownerExtensionId: string): void;
-/** Fetch only on explicit demand. Never send ambient credentials or write back remotely. */
-export declare function fetchDocumentSource(url: string, options: FetchDocumentSourceOptions): Promise<{
-    readonly source: string;
-    readonly url: string;
-}>;

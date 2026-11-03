@@ -1,0 +1,23 @@
+name: Legacy facade compatibility
+
+# Run after the implementation candidates have been published. Keeping this
+# separate lets the dependency-free contract be released before its consumers.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+      - run: npm install --ignore-scripts
+        working-directory: compat/embedded-yaml
+      - run: npm run build && npm test
+        working-directory: compat/embedded-yaml
+      - run: git diff --exit-code -- compat/embedded-yaml/dist

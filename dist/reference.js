@@ -1,4 +1,4 @@
-import { SourceDocumentError, encodeSourceDocumentReference as encodeReference, decodeSourceDocumentReference as decodeReference } from '@kubohiroya/turbowarp-document-data/composition';
+import { SourceDocumentError, encodeSourceDocumentReference as encodeReference, decodeSourceDocumentReference as decodeReference } from "./wire.js";
 export { SourceDocumentError as EmbeddedYamlError, encodeReference, decodeReference };
 // These assertions apply only to hat and marker inputs; reference validation is canonical.
 export function fail(code, message) { throw new SourceDocumentError(code, message); }

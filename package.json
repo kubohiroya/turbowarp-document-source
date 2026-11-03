@@ -1,7 +1,7 @@
 {
   "name": "@kubohiroya/turbowarp-document-source",
-  "version": "0.1.0-rc.0",
-  "description": "Document sources from SB3 files, HTTPS URLs, YAML blocks and schema-specific blocks.",
+  "version": "0.2.0-rc.0",
+  "description": "Shared document source, provider, adapter and registry contracts for TurboWarp extensions.",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -11,41 +11,14 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./package.json": "./package.json",
-    "./assets/yaml-file.svg": "./assets/yaml-file.svg",
-    "./yaml-blocks": {
-      "types": "./dist/yaml-blocks.d.ts",
-      "import": "./dist/yaml-blocks.js"
+    "./protocol": {
+      "types": "./dist/protocol.d.ts",
+      "import": "./dist/protocol.js"
     },
-    "./source-view": {
-      "types": "./dist/yaml-source-view.d.ts",
-      "import": "./dist/yaml-source-view.js"
-    },
-    "./runtime": {
-      "types": "./dist/runtime.d.ts",
-      "import": "./dist/runtime.js"
-    },
-    "./project-views": {
-      "types": "./dist/project-views.d.ts",
-      "import": "./dist/project-views.js"
-    },
-    "./view-metadata": {
-      "types": "./dist/view-metadata.d.ts",
-      "import": "./dist/view-metadata.js"
-    },
-    "./document-views": {
-      "types": "./dist/document-views.d.ts",
-      "import": "./dist/document-views.js"
-    },
-    "./assets/yaml-block.svg": "./assets/yaml-block.svg",
-    "./sources": {
-      "types": "./dist/sources.d.ts",
-      "import": "./dist/sources.js"
-    }
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
-    "assets",
     "README.md",
     "README.ja.md",
     "LICENSE"
@@ -75,12 +48,7 @@
     "access": "public",
     "tag": "next"
   },
-  "dependencies": {
-    "@kubohiroya/turbowarp-document-data": "0.5.0-rc.1",
-    "@kubohiroya/turbowarp-yaml-json": "0.8.0-rc.0"
-  },
   "devDependencies": {
-    "@turbowarp/jszip": "3.12.0",
     "@types/node": "22.20.5",
     "typescript": "5.9.3"
   }

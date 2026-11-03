@@ -1,8 +1,4 @@
 {
   "extends": "../tsconfig.json",
-  "compilerOptions": {
-    // Fixtures index known keys constantly; the library itself keeps the stricter setting.
-    "noUncheckedIndexedAccess": false
-  },
   "include": ["."]
 }
