@@ -60,4 +60,3 @@ export interface SourceDocumentRegistry {
   subscribe(listener: () => void): () => void;
   dispose(): void;
 }
-
