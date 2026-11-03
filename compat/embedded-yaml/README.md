@@ -1,5 +1,7 @@
-# turbowarp-embedded-yaml（互換パッケージ）
+# turbowarp-embedded-yaml (compatibility package)
 
-実装は `@kubohiroya/turbowarp-document-source` へ移動しました。本パッケージは従来の公開exportを再exportし、文書registry・root shape・project patchのSymbol、既存SB3のopcodeを維持します。
+[English](README.md) | [日本語](README.ja.md)
 
-新規利用は `@kubohiroya/turbowarp-document-source` を選びます。`dist/` はリポジトリ直下の `npm run build` が `src/` から生成します。旧npm名の次版を公開する際は、先に依存先の共通パッケージを公開してからこのディレクトリをpack/publishします。今回のmain統合ではnpm公開を行いません。
+The implementation has moved to [`@kubohiroya/turbowarp-document-source`](../../README.md). This facade re-exports the existing public entry points and preserves the document registry, root-shape and project-patch symbols, as well as opcodes in existing SB3 projects.
+
+Use `@kubohiroya/turbowarp-document-source` for new integrations. Running `npm run build` at the repository root generates this package's `dist/` from its `src/`. Before publishing a new version under the old npm name, publish the canonical dependency first, then pack/publish this directory. Repository integration does not itself publish the npm package.
