@@ -1,29 +1,45 @@
 # turbowarp-document-source
 
-TurboWarpの「データソース」ハットと文書編集契約の共通パッケージです。紙芝居に限らず、設定や他のDSLの文書を扱います。紙芝居側では「台本データ」と表示します。
+[English](README.md) | [日本語](README.ja.md)
 
-## 4種類
+Shared document-source and editing contracts for TurboWarp extensions and their hosts. Supports SB3 files, HTTPS URLs, YAML blocks and schema-specific blocks for configuration and other domain-specific languages (DSLs), including Kamishibai scripts.
 
-| 種類 | 所在 | 表現 |
+## Role and dependencies
+
+This package defines how document owners and hosts refer to, discover, preview, convert and commit source documents. It provides data-source hats, stable references and adapters around the single source-document registry owned by [turbowarp-document-data](https://github.com/kubohiroya/turbowarp-document-data). The Kamishibai owner labels its documents “Script data”; other owners can supply their own labels.
+
+It supplies a shared contract, together with its document-specific implementations. Document Data and each DSL owner retain ownership of the original YAML/JSON text; [turbowarp-yaml-json](https://github.com/kubohiroya/turbowarp-yaml-json) handles syntax and comment preservation, and [turbowarp-structured-data](https://github.com/kubohiroya/turbowarp-structured-data) handles structural operations. This package connects references, hats, conversions and incremental project patches without making a second copy of the document registry.
+
+The dashboard currently places this implementation in **Data & Documents**. Moving it alone to **Extension Contracts** would create a category dependency cycle: document-source depends on document-data and yaml-json in Data & Documents, while those packages use named-data or extension-data-editor in Extension Contracts, including development dependencies. A lower-level contract in Extension Contracts would require separating the contract from these document-specific implementations first.
+
+## Four source modes
+
+| Kind | Location | Representation |
 | --- | --- | --- |
-| embedded-file | SB3の文書保存領域 | YAML/JSONテキスト |
-| url | 外部HTTPS URL | YAML/JSONテキスト |
-| yaml-blocks | SB3のブロック | 汎用YAML構造 |
-| schema-blocks | SB3のブロック | 所有者が定義するDSL専用構造 |
+| `embedded-file` | Document storage inside the SB3 | YAML/JSON text |
+| `url` | External HTTPS URL | YAML/JSON text |
+| `yaml-blocks` | Blocks inside the SB3 | Generic YAML structure |
+| `schema-blocks` | Blocks inside the SB3 | Owner-defined, DSL-specific structure |
 
-providerId/documentIdおよび文書名は形式を変更しても維持します。rootはversionと入口文書名を持ち、前後の接続を持ちません。通常の文書名は空欄にできません。
+`providerId`, `documentId` and the document filename remain stable when the representation changes. A root hat carries a version and an entry-document filename and has no previous or next connection. Ordinary document filenames must be nonempty.
 
-`normalizeDocumentSource`は4種類をlocation/representationへ分解します。`getDocumentSourceRegistry(vm)`はDocument Dataの単一registryを利用し、文書を複製しません。YAML/JSONの原文はDocument Dataや各DSL所有者、構文とコメント保持はyaml-json、構造操作はstructured-dataが担当します。本パッケージは参照・ハット・変換と差分適用を接続します。
+`normalizeDocumentSource` separates each mode into its location and representation. `getDocumentSourceRegistry(vm)` uses Document Data's single registry rather than duplicating documents.
 
-## URLの扱い
+## HTTPS sources
 
-EditorはURL取得/プレビューでは作品を変更せず、保存時に所有者のSchema/DSL検証後に参照URLと検証済みの原文cacheを差分反映します。実行開始時にはURLを再取得して検証します。取得失敗では古いcacheを暗黙に再生しません。
+Fetching or previewing a URL in the Editor leaves the project unchanged. On save, the owner validates the source against its schema/DSL before the reference URL and the validated source cache are applied as an incremental patch. At runtime startup, the host fetches and validates the URL again. A failed fetch never silently falls back to an old cache.
 
-URL内容を外部エディタで編集・ブロックへ変換する場合は、先に「SB3内のファイル」へ変更して保存します。遠隔サイトへPUT等を送信しません。URLはHTTPSのみ、credentials omit、redirect error、UTF-8、既定1MiB/15秒上限です。CORSで取得できる配信元を使用してください。相対includeは登録済みSB3文書名で解決し、外部URLを基準に未知の文書を自動取得しません。
+To edit URL content in an external editor or convert it into blocks, first switch to an embedded SB3 file and save. The host does not send PUT requests or otherwise write to the remote site. Fetches require HTTPS and UTF-8, omit credentials and reject redirects. The default limits are 1 MiB and 15 seconds. The source server must allow CORS. Relative includes resolve registered SB3 document names; they do not automatically fetch unknown documents relative to the external URL.
 
-## 所有者の登録
+The shared package never reads an ambient fetch function. Pass the host's network capability explicitly to `fetchDocumentSource` and to provider registrations that enable URL operations. App Core accepts an injected URL resolver callback and rejects URL references when no resolver is provided.
+
+## Registering an owner
+
+The host supplies the VM, a document provider and an owner implementation that validates the source and updates its own project data:
 
 ```js
+import {getDocumentSourceRegistry} from '@kubohiroya/turbowarp-document-source';
+
 const registry = getDocumentSourceRegistry(vm);
 const unregister = registry.register(provider, {
   fetch: window.fetch.bind(window), // Inject the host's network capability explicitly.
@@ -36,32 +52,46 @@ const unregister = registry.register(provider, {
 });
 ```
 
-`prepareDataSource`は取得・検証済みの候補を返します。`commitDataSource`はその同じ候補を利用して文書と参照元を一括で差分適用します。途中の作品変更、異なるセッションの候補、閉じたダイアログは拒否します。SB3圧縮保存・全体再読込は行いません。
+An opened document adapter's `prepareDataSource` returns a fetched and validated candidate. `commitDataSource` uses that same candidate to apply the document and source-location changes together. It rejects intervening project changes, candidates from another session and closed dialogs. It does not zip/save or reload the entire SB3 project.
 
-## 互換と導入
+URL settings are stored in `extensionStorage[ownerExtensionId].documentSourceLocations`. They must belong to a loaded owner extension: the standard SB3 serializer omits storage for an unused shared extension ID.
 
-従来のembedded-yaml APIは旧名のaliasとして残します。互換パッケージは本パッケージへの再exportに一本化します。既存opcode、文書reference、storage、共有registry Symbolは変更しません。
+## Public entry points
 
-Editor/Appの新しい参照元操作は起動時 `twPlusDocumentSource=1`、文書UI自体は既存の `twPlusYamlEditor=1` で有効にします。両方とも既定OFFです。切戻しは新フラグを外して再起動し、URL参照を含まない元SB3を利用します。URL参照を含む作品は機能OFF時に取得を拒否し、古いcacheへ暗黙に戻りません。
-
-GitHubリポジトリは既存の履歴・Issueを保持して `turbowarp-document-source` へ改名しています。旧npm名の互換層は `compat/embedded-yaml` に置きます。npm公開・タグ・Releaseはこの変更に含みません。
-
-URL設定は `extensionStorage[所有拡張ID].documentSourceLocations` に保存します。未使用の共通拡張IDの領域は標準SB3シリアライザが省略するため使用しません。
-
-共通パッケージはambient fetchを参照しません。`fetchDocumentSource`、およびURL操作を有効にする提供元登録には、ホストが通信関数を明示的に渡します。App CoreはURLを解決するためのcallbackを受け取り、提供されないURL参照を拒否します。
-
-ローカルの互換層検証では `TW_LEGACY_EMBEDDED_YAML=/path/to/legacy-embedded-yaml` を指定します。共通パッケージ単独の検証は互換層を必要とせず、この照合だけをスキップします。
-
-## 開発
-
-実装・テスト・スクリプトはTypeScriptです。Node.js 26（`.nvmrc`）は `.ts` を直接実行するため、テストとスクリプトにビルドは不要です。
-
-| コマンド | 内容 |
+| Import path | Purpose |
 | --- | --- |
-| `npm run typecheck` | `src`・`scripts`・互換層と `test` を型検査します |
-| `npm test` | `node --test test/*.test.ts` |
-| `npm run build` | `src` から `dist/`、互換層の `src` から `compat/embedded-yaml/dist/` へJavaScriptと型定義を出力します |
-| `npm run check:dist` | 再ビルドした出力がコミット済みの `dist` と一致することを確認します |
-| `npm run check` | 上記すべてと `pack:check` |
+| `@kubohiroya/turbowarp-document-source` | References, hats, markers, schema metadata, source normalization, HTTPS fetching and the shared registry adapter |
+| `…/yaml-blocks` | Generic YAML block representations |
+| `…/source-view` | Source-text and YAML-block conversion |
+| `…/runtime` | Inert companion extension that declares YAML blocks |
+| `…/project-views` | Project representation previews, conversions and incremental patches |
+| `…/view-metadata` | Representation metadata |
+| `…/document-views` | Document-source providers and stores |
+| `…/sources` | Source types, normalization, URL storage, HTTPS fetching and the registry adapter |
 
-公開する `exports` は `dist/` を指します。git参照で導入する利用側がビルドせずに使えるよう、`dist/` はコミットします。`src` を変更したら `npm run build` の結果も同じコミットに含めます。
+Each `…/` prefix above stands for `@kubohiroya/turbowarp-document-source/`. The package also exports `package.json` and the `assets/yaml-file.svg` and `assets/yaml-block.svg` icons. JavaScript and TypeScript declarations are provided through `dist/`.
+
+## Compatibility and rollout
+
+Legacy embedded-yaml APIs remain available as aliases. The [compatibility package](compat/embedded-yaml/README.md) re-exports this package. Existing opcodes, document references, storage and the shared registry symbol remain unchanged.
+
+In the Editor/App, enable the new source-location operations at startup with `twPlusDocumentSource=1`; the document UI uses the existing `twPlusYamlEditor=1` flag. Both default to OFF. To roll back, remove the new flag, restart and use the original SB3 without URL references. With the feature disabled, projects containing URL references reject fetching and do not silently use an old cache.
+
+The GitHub repository was renamed to `turbowarp-document-source` while retaining its history and issues. The facade for the old npm name is in `compat/embedded-yaml`. Repository integration does not itself publish npm packages, tags or GitHub Releases.
+
+For local compatibility checks, set `TW_LEGACY_EMBEDDED_YAML=/path/to/legacy-embedded-yaml`. Standalone checks do not require the legacy package and skip only that comparison when it is absent.
+
+## Development
+
+The implementation, tests and scripts are TypeScript. Node.js 26 (see `.nvmrc`) runs `.ts` files directly, so tests and scripts do not need a build step.
+
+| Command | Purpose |
+| --- | --- |
+| `npm run typecheck` | Type-check `src`, `scripts`, the compatibility facade and `test` |
+| `npm test` | Run `node --test test/*.test.ts` |
+| `npm run build` | Emit JavaScript and declarations from `src` to `dist/`, and from the facade's `src` to `compat/embedded-yaml/dist/` |
+| `npm run check:dist` | Verify that rebuilt output matches the committed `dist` files |
+| `npm run pack:check` | Preview the package archive without running lifecycle scripts |
+| `npm run check` | Run all of the above checks, including `pack:check` |
+
+Public `exports` point to `dist/`. The generated files are committed so Git-based consumers can use the package without building it. When changing `src`, include the result of `npm run build` in the same commit.

@@ -43,6 +43,7 @@
     "dist",
     "assets",
     "README.md",
+    "README.ja.md",
     "LICENSE"
   ],
   "engines": {
