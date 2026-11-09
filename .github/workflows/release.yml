@@ -76,6 +76,10 @@ jobs:
           else
             gh release upload "$RELEASE_TAG" "$NPM_ARCHIVE"
           fi
+      - name: Use an npm that supports trusted publishing
+        # The bundled npm publishes through OIDC but cannot move dist-tags with it;
+        # the family pins the same npm as asset-cache and the other standard workflows.
+        run: npm install --global npm@11.21.0
       - name: Publish only an unpublished version
         run: |
           set -euo pipefail
