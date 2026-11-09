@@ -84,3 +84,26 @@ jobs:
           else
             npm publish "$NPM_ARCHIVE" --access public --provenance --tag next
           fi
+      - name: Point latest and next at this release
+        # The family keeps both dist-tags on the newest verified release
+        # (kubohiroya/turbowarp-plus-packages#16). A recovery run re-applies them.
+        run: |
+          set -euo pipefail
+          name="$(node -p "require('./package.json').name")"
+          version="$(node -p "require('./package.json').version")"
+          want="$(node -p 'require(process.env.RUNNER_TEMP + "/canonical-report.json").sha1')"
+          # Accepting a publish and serving it differ; wait for the registry itself.
+          for attempt in $(seq 1 60); do
+            have="$(npm view "$name@$version" dist.shasum --prefer-online 2> /dev/null || true)"
+            [ -n "$have" ] && break
+            sleep 10
+          done
+          if [ "$have" != "$want" ]; then
+            echo "::error::The registry does not serve $name@$version with the canonical archive."
+            exit 1
+          fi
+          for tag in latest next; do
+            if [ "$(npm view "$name" "dist-tags.$tag" --prefer-online 2> /dev/null || true)" != "$version" ]; then
+              npm dist-tag add "$name@$version" "$tag"
+            fi
+          done
