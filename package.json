@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-document-source",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Shared document source, provider, adapter and registry contracts for TurboWarp extensions.",
   "type": "module",
   "sideEffects": false,
