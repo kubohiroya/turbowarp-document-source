@@ -93,4 +93,4 @@ Implementation, tests and scripts use TypeScript. Node.js 26 (`.nvmrc`) runs tes
 | `npm run pack:check` | Inspect the package archive without lifecycle scripts |
 | `npm run check` | Run all checks |
 
-Commit regenerated `dist/` alongside source changes so Git consumers can use the contract without building it. The legacy facade is built separately after installing its implementation dependencies.
+Commit regenerated `dist/` alongside source changes so Git consumers can use the contract without building it.

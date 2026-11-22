@@ -76,7 +76,7 @@ export function providerFor(adapter: ReturnType<SourceDocumentProvider['open']>)
 
 所有者の登録、URL/cacheの扱い、差分適用、フラグと切戻しは[実装ガイド](https://github.com/kubohiroya/turbowarp-document-data/blob/main/docs/source-integration.ja.md)へ移しました。従来の日本語原文も同ガイドに保持します。`twPlusDocumentSource`と`twPlusYamlEditor`は起動時固定・既定OFFを維持します。
 
-公開順は契約 → yaml-json → document-data → 旧名互換層 → 利用側です。利用側はimportと依存をまとめて移行するまで直前の検証済み版を保持します。リポジトリの変更だけでnpm公開・タグ・Release作成は行いません。
+公開順は契約 → yaml-json → document-data → 利用側です。利用側はimportと依存をまとめて移行するまで直前の検証済み版を保持します。リポジトリの変更だけでnpm公開・タグ・Release作成は行いません。
 
 ## 開発
 
@@ -91,4 +91,4 @@ export function providerFor(adapter: ReturnType<SourceDocumentProvider['open']>)
 | `npm run pack:check` | lifecycle scriptを実行せず配布内容を確認 |
 | `npm run check` | 上記の検証を実行 |
 
-src変更時は再生成したdistも同じコミットに含めます。旧名互換層は移動先の実装依存を導入した後に別途ビルドします。
+src変更時は再生成したdistも同じコミットに含めます。
