@@ -74,11 +74,11 @@ The 0.2 API deliberately removes implementation re-exports. Update each import a
 | document-source/sources | Contract types/normalizers from document-source; fetching/storage/registry implementations from document-data/document-source |
 | document-source/assets/yaml-file.svg, assets/yaml-block.svg | document-data/assets/yaml-file.svg, yaml-json/assets/yaml-block.svg |
 
-The [legacy npm facade](compat/embedded-yaml/README.md) re-exports the implementation entry points for existing embedded-yaml consumers. Its dependencies are separate from this contract package's dependencies. Existing reference strings, opcodes, storage formats and shared registry/root-shape/project-patch symbols remain unchanged.
+The legacy npm package `@kubohiroya/turbowarp-embedded-yaml` is deprecated; use the packages above instead. Existing reference strings, opcodes, storage formats and shared registry/root-shape/project-patch symbols remain unchanged.
 
 For owner registration, URL behavior, source caches, project patches, flags and rollback, see [the implementation guide](https://github.com/kubohiroya/turbowarp-document-data/blob/main/docs/source-integration.md). Original Japanese documentation is retained in its [Japanese counterpart](https://github.com/kubohiroya/turbowarp-document-data/blob/main/docs/source-integration.ja.md). The host flags `twPlusDocumentSource` and `twPlusYamlEditor` remain startup-fixed and OFF by default.
 
-Publish compatible releases in dependency order: contract → yaml-json → document-data → legacy facade → consumers. Keep existing consumers on their previously verified versions until their imports and dependencies are migrated together. No npm package, tag or Release is published merely by changing these repository files.
+Publish compatible releases in dependency order: contract → yaml-json → document-data → consumers. Keep existing consumers on their previously verified versions until their imports and dependencies are migrated together. No npm package, tag or Release is published merely by changing these repository files.
 
 ## Development
 
@@ -93,4 +93,4 @@ Implementation, tests and scripts use TypeScript. Node.js 26 (`.nvmrc`) runs tes
 | `npm run pack:check` | Inspect the package archive without lifecycle scripts |
 | `npm run check` | Run all checks |
 
-Commit regenerated `dist/` alongside source changes so Git consumers can use the contract without building it. The legacy facade is built separately after installing its implementation dependencies.
+Commit regenerated `dist/` alongside source changes so Git consumers can use the contract without building it.
